@@ -2,10 +2,16 @@
 //  STATE
 // ============================================================
 let transactions   = JSON.parse(localStorage.getItem('family_transactions')) || [];
+let budgetTargets  = JSON.parse(localStorage.getItem('family_budget_targets')) || {};
 let selectedType   = 'expense';
 let selectedMember = 'husband';
 let filterView     = 'all'; // 'all' | 'husband' | 'wife'
 let filterMonth    = '';    // '' = all, or 'M/YYYY'
+
+const EXPENSE_CATEGORIES = [
+  'អាហារ + កាហ្វេ', 'អាហារ', 'ចំណាយផ្ទះ',
+  'សុខភាព', 'ការសិក្សា', 'ចំណាយផ្សេង',
+];
 
 // ============================================================
 //  DOM
@@ -265,6 +271,71 @@ function renderList() {
 }
 
 // ============================================================
+//  BUDGET TARGETS
+// ============================================================
+function getCurrentMonthKey() {
+  const now = new Date();
+  return (now.getMonth() + 1) + '/' + now.getFullYear();
+}
+
+function renderBudgets() {
+  const budgetList = document.getElementById('budget-list');
+  if (!budgetList) return;
+
+  const currentMonthKey = getCurrentMonthKey();
+  budgetList.innerHTML = '';
+
+  EXPENSE_CATEGORIES.forEach(cat => {
+    const target = budgetTargets[cat];
+    const hasTarget = target !== undefined && target > 0;
+
+    const spent = transactions
+      .filter(t => t.type === 'expense' && t.category === cat &&
+                   t.date && getMonthKey(t.date) === currentMonthKey)
+      .reduce((s, t) => s + t.amount, 0);
+
+    const icon      = categoryIcons[cat] || '📉';
+    const remaining = hasTarget ? target - spent : null;
+    const isOver    = remaining !== null && remaining < 0;
+    const pct       = hasTarget ? Math.min(100, (spent / target) * 100) : 0;
+
+    const li = document.createElement('li');
+    li.className = 'budget-item';
+    li.innerHTML = `
+      <div class="budget-row">
+        <span class="budget-icon">${icon}</span>
+        <div class="budget-info">
+          <span class="budget-cat">${cat}</span>
+          <div class="budget-nums">
+            <label class="budget-target-label">🎯
+              <input type="number" class="budget-target-input"
+                     value="${hasTarget ? target : ''}"
+                     placeholder="—"
+                     min="0" step="0.01"
+                     data-cat="${cat}">
+            </label>
+            <span class="budget-spent-val">📉 ${fmt(spent)}</span>
+            ${hasTarget ? `<span class="budget-remaining-val ${isOver ? 'minus' : 'plus'}">
+              ${isOver ? '⚠️' : '✅'} ${isOver ? '-' : ''}${fmt(Math.abs(remaining))} នៅសល់
+            </span>` : ''}
+          </div>
+          ${hasTarget ? `
+            <div class="budget-bar-wrap">
+              <div class="budget-bar">
+                <div class="budget-bar-fill ${isOver ? 'budget-bar-over' : ''}"
+                     style="width:${pct}%"></div>
+              </div>
+              <span class="budget-pct">${Math.round(pct)}%</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+    budgetList.appendChild(li);
+  });
+}
+
+// ============================================================
 //  REMOVE / CLEAR
 // ============================================================
 window.removeTransaction = function(idx) {
@@ -326,9 +397,25 @@ function saveAndRender() {
   updateSummary();
   populateMonthFilter();
   renderList();
+  renderBudgets();
 }
 
 // ============================================================
 //  INIT
 // ============================================================
+// Wire budget target input changes via event delegation (set up once)
+document.getElementById('budget-list').addEventListener('change', function(e) {
+  const input = e.target.closest('.budget-target-input');
+  if (!input) return;
+  const cat = input.dataset.cat;
+  const val = parseFloat(input.value);
+  if (!isNaN(val) && val > 0) {
+    budgetTargets[cat] = val;
+  } else {
+    delete budgetTargets[cat];
+  }
+  localStorage.setItem('family_budget_targets', JSON.stringify(budgetTargets));
+  renderBudgets();
+});
+
 saveAndRender();
