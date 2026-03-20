@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>តាមដានចំណាយគ្រួសារ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>💰 គ្រួសាររបស់ខ្ញុំ</h1>
+
+    <!-- ===== សមាជិកគ្រួសារ ===== -->
+    <div class="member-tabs">
+      <button class="tab active" id="tab-all"     onclick="filterMember('all')">👨‍👩‍👧 ទាំងអស់</button>
+      <button class="tab"        id="tab-husband"  onclick="filterMember('husband')">👨 ប្ដី</button>
+      <button class="tab"        id="tab-wife"     onclick="filterMember('wife')">👩 ប្រពន្ធ</button>
+    </div>
+
+    <!-- ===== សមតុល្យ ===== -->
+    <div class="balance-card">
+      <p class="label" id="balance-label">សមតុល្យសរុប</p>
+      <p id="balance" class="balance-amount">$0.00</p>
+      <div class="summary-row">
+        <div class="summary-box income-box">
+          <span>📈 ចំណូល</span>
+          <strong id="total-income" class="plus">$0.00</strong>
+        </div>
+        <div class="summary-box expense-box">
+          <span>📉 ចំណាយ</span>
+          <strong id="total-expense" class="minus">$0.00</strong>
+        </div>
+      </div>
+
+      <!-- ប្ដី VS ប្រពន្ធ Progress Bar -->
+      <div class="vs-bar-wrap" id="vs-bar-wrap">
+        <div class="vs-label">
+          <span>👨 ប្ដី</span>
+          <span>👩 ប្រពន្ធ</span>
+        </div>
+        <div class="vs-bar">
+          <div class="vs-husband" id="vs-husband-bar"></div>
+          <div class="vs-wife"    id="vs-wife-bar"></div>
+        </div>
+        <div class="vs-label">
+          <span id="vs-husband-pct">0%</span>
+          <span id="vs-wife-pct">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ទម្រង់បំពេញ ===== -->
+    <div class="form-card">
+      <h2>➕ បន្ថែម</h2>
+      <form id="transaction-form">
+        <input type="text" id="desc" placeholder="ពិពណ៌នា (ឧ. ទឹកដោះគោ, ប្រាក់ខែ)" required>
+        <input type="number" id="amount" placeholder="ចំនួនទឹកប្រាក់ ($)" min="0" step="0.01" required>
+
+        <select id="category">
+          <option value="ប្រាក់ខែ">💼 ប្រាក់ខែ</option>
+          <option value="អាជីវកម្ម">🏪 អាជីវកម្ម</option>
+          <option value="ចំណូលផ្សេង">📦 ចំណូលផ្សេង</option>
+          <option value="អាហារ">🍚 អាហារ</option>
+          <option value="ចំណាយផ្ទះ">🏠 ចំណាយផ្ទះ</option>
+          <option value="សុខភាព">🏥 សុខភាព</option>
+          <option value="ការសិក្សា">📚 ការសិក្សា</option>
+          <option value="ចំណាយផ្សេង">🛒 ចំណាយផ្សេង</option>
+        </select>
+
+        <!-- ប្ដី / ប្រពន្ធ -->
+        <div class="member-select-row">
+          <p class="field-label">👤 សមាជិក</p>
+          <div class="type-buttons">
+            <button type="button" class="btn-husband active" id="btn-husband" onclick="selectMemberInput('husband')">
+              👨 ប្ដី
+            </button>
+            <button type="button" class="btn-wife" id="btn-wife" onclick="selectMemberInput('wife')">
+              👩 ប្រពន្ធ
+            </button>
+          </div>
+        </div>
+
+        <!-- ចំណូល / ចំណាយ -->
+        <div class="member-select-row">
+          <p class="field-label">💱 ប្រភេទ</p>
+          <div class="type-buttons">
+            <button type="button" class="btn-income active" id="btn-income" onclick="selectType('income')">
+              ➕ ចំណូល
+            </button>
+            <button type="button" class="btn-expense" id="btn-expense" onclick="selectType('expense')">
+              ➖ ចំណាយ
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit">💾 រក្សាទុក</button>
+      </form>
+    </div>
+
+    <!-- ===== ប្រៀបធៀបប្ដី ប្រពន្ធ ===== -->
+    <div class="compare-card">
+      <h2>📊 ប្រៀបធៀបប្ដី / ប្រពន្ធ</h2>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>👨 ប្ដី</th>
+            <th>👩 ប្រពន្ធ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>📈 ចំណូល</td>
+            <td id="cmp-h-income"  class="plus">$0.00</td>
+            <td id="cmp-w-income"  class="plus">$0.00</td>
+          </tr>
+          <tr>
+            <td>📉 ចំណាយ</td>
+            <td id="cmp-h-expense" class="minus">$0.00</td>
+            <td id="cmp-w-expense" class="minus">$0.00</td>
+          </tr>
+          <tr class="net-row">
+            <td>💰 សុទ្ធ</td>
+            <td id="cmp-h-net">$0.00</td>
+            <td id="cmp-w-net">$0.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ===== ប្រវត្តិ ===== -->
+    <div class="history-card">
+      <div class="history-header">
+        <h2>📋 ប្រវត្តិ</h2>
+        <button class="btn-clear" onclick="clearAll()">🗑️ លុបទាំងអស់</button>
+      </div>
+      <ul id="transaction-list"></ul>
+    </div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
