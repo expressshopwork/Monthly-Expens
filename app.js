@@ -333,6 +333,37 @@ function renderBudgets() {
     `;
     budgetList.appendChild(li);
   });
+
+  // ---- Income vs Total Targets Summary ----
+  const totalTarget = Object.values(budgetTargets).reduce((s, v) => s + (v > 0 ? v : 0), 0);
+  const summaryEl = document.getElementById('budget-summary');
+  if (summaryEl) {
+    if (totalTarget > 0) {
+      const monthIncome = transactions
+        .filter(t => t.type === 'income' && t.date && getMonthKey(t.date) === currentMonthKey)
+        .reduce((s, t) => s + t.amount, 0);
+      const diff   = monthIncome - totalTarget;
+      const isOver = diff < 0;
+      summaryEl.innerHTML = `
+        <div class="budget-summary-row">
+          <span>🎯 គោលដៅចំណាយសរុប</span>
+          <span class="minus">${fmt(totalTarget)}</span>
+        </div>
+        <div class="budget-summary-row">
+          <span>📈 ចំណូលប្រចាំខែ</span>
+          <span class="plus">${fmt(monthIncome)}</span>
+        </div>
+        <div class="budget-summary-divider"></div>
+        <div class="budget-summary-result ${isOver ? 'budget-summary-over' : 'budget-summary-ok'}">
+          <span>${isOver ? '⚠️ គោលដៅលើសចំណូល!' : '✅ គោលដៅស្ថិតក្នុងថវិកា'}</span>
+          <span>${isOver ? '-' : '+'}${fmt(Math.abs(diff))}</span>
+        </div>
+      `;
+      summaryEl.style.display = '';
+    } else {
+      summaryEl.style.display = 'none';
+    }
+  }
 }
 
 // ============================================================
