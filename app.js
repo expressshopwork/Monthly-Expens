@@ -1,0 +1,243 @@
+// ============================================================
+//  STATE
+// ============================================================
+let transactions   = JSON.parse(localStorage.getItem('family_transactions')) || [];
+let selectedType   = 'income';
+let selectedMember = 'husband';
+let filterView     = 'all'; // 'all' | 'husband' | 'wife'
+
+// ============================================================
+//  DOM
+// ============================================================
+const balanceEl      = document.getElementById('balance');
+const balanceLabelEl = document.getElementById('balance-label');
+const totalIncomeEl  = document.getElementById('total-income');
+const totalExpenseEl = document.getElementById('total-expense');
+const listEl         = document.getElementById('transaction-list');
+const form           = document.getElementById('transaction-form');
+const descInput      = document.getElementById('desc');
+const amountInput    = document.getElementById('amount');
+const categoryInput  = document.getElementById('category');
+
+// ============================================================
+//  SELECT TYPE (ចំណូល / ចំណាយ)
+// ============================================================
+window.selectType = function(type) {
+  selectedType = type;
+  document.getElementById('btn-income') .classList.toggle('active', type === 'income');
+  document.getElementById('btn-expense').classList.toggle('active', type === 'expense');
+};
+
+// ============================================================
+//  SELECT MEMBER INPUT (ប្ដី / ប្រពន្ធ)
+// ============================================================
+window.selectMemberInput = function(member) {
+  selectedMember = member;
+  document.getElementById('btn-husband').classList.toggle('active', member === 'husband');
+  document.getElementById('btn-wife')   .classList.toggle('active', member === 'wife');
+};
+
+// ============================================================
+//  FILTER VIEW (Tab)
+// ============================================================
+window.filterMember = function(view) {
+  filterView = view;
+  document.getElementById('tab-all')    .classList.toggle('active', view === 'all');
+  document.getElementById('tab-husband').classList.toggle('active', view === 'husband');
+  document.getElementById('tab-wife')   .classList.toggle('active', view === 'wife');
+
+  const labels = { all: 'សមតុល្យសរុប', husband: 'សមតុល្យប្ដី 👨', wife: 'សមតុល្យប្រពន្ធ 👩' };
+  balanceLabelEl.textContent = labels[view];
+
+  saveAndRender();
+};
+
+// ============================================================
+//  HELPERS
+// ============================================================
+const categoryIcons = {
+  'ប្រាក់ខែ':    '💼', 'អាជីវកម្ម':  '🏪',
+  'ចំណូលផ្សេង': '📦', 'អាហារ':      '🍚',
+  'ចំណាយផ្ទះ':  '🏠', 'សុខភាព':    '🏥',
+  'ការសិក្សា':  '📚', 'ចំណាយផ្សេង': '🛒',
+};
+
+function fmt(n) { return '$' + Math.abs(n).toFixed(2); }
+
+function sumBy(list, type) {
+  return list.filter(t => t.type === type).reduce((s, t) => s + t.amount, 0);
+}
+
+// ============================================================
+//  UPDATE SUMMARY
+// ============================================================
+function updateSummary() {
+  const filtered = filterView === 'all'
+    ? transactions
+    : transactions.filter(t => t.member === filterView);
+
+  const income  = sumBy(filtered, 'income');
+  const expense = sumBy(filtered, 'expense');
+  const balance = income - expense;
+
+  balanceEl.textContent      = '$' + balance.toFixed(2);
+  balanceEl.style.color      = balance >= 0 ? '#fff' : '#ff6348';
+  totalIncomeEl.textContent  = fmt(income);
+  totalExpenseEl.textContent = fmt(expense);
+
+  updateCompare();
+  updateVsBar();
+}
+
+// ============================================================
+//  COMPARE TABLE  (ប្ដី vs ប្រពន្ធ)
+// ============================================================
+function updateCompare() {
+  const h = transactions.filter(t => t.member === 'husband');
+  const w = transactions.filter(t => t.member === 'wife');
+
+  const hInc = sumBy(h, 'income');
+  const hExp = sumBy(h, 'expense');
+  const wInc = sumBy(w, 'income');
+  const wExp = sumBy(w, 'expense');
+  const hNet = hInc - hExp;
+  const wNet = wInc - wExp;
+
+  document.getElementById('cmp-h-income') .textContent = fmt(hInc);
+  document.getElementById('cmp-h-expense').textContent = fmt(hExp);
+  document.getElementById('cmp-w-income') .textContent = fmt(wInc);
+  document.getElementById('cmp-w-expense').textContent = fmt(wExp);
+
+  const hNetEl = document.getElementById('cmp-h-net');
+  const wNetEl = document.getElementById('cmp-w-net');
+  hNetEl.textContent = (hNet >= 0 ? '+' : '-') + fmt(hNet);
+  wNetEl.textContent = (wNet >= 0 ? '+' : '-') + fmt(wNet);
+  hNetEl.className = hNet >= 0 ? 'plus' : 'minus';
+  wNetEl.className = wNet >= 0 ? 'plus' : 'minus';
+}
+
+// ============================================================
+//  VS PROGRESS BAR
+// ============================================================
+function updateVsBar() {
+  const hExp = sumBy(transactions.filter(t => t.member === 'husband'), 'expense');
+  const wExp = sumBy(transactions.filter(t => t.member === 'wife'),    'expense');
+  const total = hExp + wExp;
+
+  const hPct = total === 0 ? 50 : Math.round((hExp / total) * 100);
+  const wPct = 100 - hPct;
+
+  document.getElementById('vs-husband-bar').style.width = hPct + '%';
+  document.getElementById('vs-wife-bar')   .style.width = wPct + '%';
+  document.getElementById('vs-husband-pct').textContent = hPct + '%';
+  document.getElementById('vs-wife-pct')   .textContent = wPct + '%';
+}
+
+// ============================================================
+//  RENDER LIST
+// ============================================================
+function renderList() {
+  listEl.innerHTML = '';
+
+  const filtered = filterView === 'all'
+    ? [...transactions].reverse()
+    : [...transactions].filter(t => t.member === filterView).reverse();
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<li><p class="empty-msg">មិនទាន់មានធាតុណាមួយ</p></li>';
+    return;
+  }
+
+  filtered.forEach(t => {
+    const realIdx = transactions.indexOf(t);
+    const icon    = categoryIcons[t.category] || (t.type === 'income' ? '📈' : '📉');
+    const badge   = t.member === 'husband'
+      ? '<span class="badge badge-husband">👨 ប្ដី</span>'
+      : '<span class="badge badge-wife">👩 ប្រពន្ធ</span>';
+
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span class="tx-icon">${icon}</span>
+      <div class="tx-info">
+        <div class="tx-desc">${t.desc}</div>
+        <div class="tx-meta">
+          ${badge}
+          <span>${t.category}</span>
+          <span>${t.date}</span>
+        </div>
+      </div>
+      <span class="tx-amount ${t.type === 'income' ? 'plus' : 'minus'}">
+        ${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}
+      </span>
+      <button class="tx-remove" onclick="removeTransaction(${realIdx})">×</button>
+    `;
+    listEl.appendChild(li);
+  });
+}
+
+// ============================================================
+//  REMOVE / CLEAR
+// ============================================================
+window.removeTransaction = function(idx) {
+  if (confirm('តើអ្នកប្រាកដថាចង់លុបធាតុនេះ?')) {
+    transactions.splice(idx, 1);
+    saveAndRender();
+  }
+};
+
+window.clearAll = function() {
+  const target = filterView === 'all'     ? 'ប្រវត្តិទាំងអស់' :
+                 filterView === 'husband' ? 'ប្រវត្តិប្ដី'     : 'ប្រវត្តិប្រពន្ធ';
+  if (confirm(`លុប${target}?`)) {
+    if (filterView === 'all') {
+      transactions = [];
+    } else {
+      transactions = transactions.filter(t => t.member !== filterView);
+    }
+    saveAndRender();
+  }
+};
+
+// ============================================================
+//  FORM SUBMIT
+// ============================================================
+form.addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const desc     = descInput.value.trim();
+  const amount   = parseFloat(amountInput.value);
+  const category = categoryInput.value;
+
+  if (!desc || isNaN(amount) || amount <= 0) return;
+
+  const now  = new Date();
+  const date = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+
+  transactions.push({
+    desc,
+    amount,
+    type:   selectedType,
+    member: selectedMember,
+    category,
+    date,
+  });
+
+  saveAndRender();
+  form.reset();
+  selectType('income');
+  selectMemberInput('husband');
+});
+
+// ============================================================
+//  SAVE & RENDER
+// ============================================================
+function saveAndRender() {
+  localStorage.setItem('family_transactions', JSON.stringify(transactions));
+  updateSummary();
+  renderList();
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+saveAndRender();

@@ -1,0 +1,301 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Khmer OS', Arial, sans-serif;
+  background: linear-gradient(135deg, #e0f7fa, #f3e5f5);
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.container { max-width: 480px; margin: 0 auto; }
+
+h1 {
+  text-align: center;
+  color: #333;
+  font-size: 1.6rem;
+  margin-bottom: 1rem;
+}
+
+/* ===== Member Tabs ===== */
+.member-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.6rem 0.4rem;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  background: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  color: #666;
+}
+
+.tab:hover { border-color: #667eea; color: #667eea; }
+
+.tab.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: transparent;
+}
+
+/* ===== Balance Card ===== */
+.balance-card {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+}
+
+.label { font-size: 0.85rem; opacity: 0.85; margin-bottom: 0.3rem; }
+
+.balance-amount {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.summary-row { display: flex; gap: 1rem; justify-content: center; }
+
+.summary-box {
+  flex: 1;
+  border-radius: 10px;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.income-box  { background: rgba(46,213,115,0.25); }
+.expense-box { background: rgba(255,99,72,0.25); }
+.summary-box span { font-size: 0.8rem; }
+
+.plus  { color: #2ed573; font-size: 1.1rem; }
+.minus { color: #ff6348; font-size: 1.1rem; }
+
+/* ===== VS Bar ===== */
+.vs-bar-wrap {
+  margin-top: 1.1rem;
+  background: rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 0.8rem;
+}
+
+.vs-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  margin-bottom: 0.3rem;
+  opacity: 0.9;
+}
+
+.vs-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.2);
+}
+
+.vs-husband { background: #74b9ff; transition: width 0.4s; }
+.vs-wife    { background: #fd79a8; transition: width 0.4s; }
+
+/* ===== Form Card ===== */
+.form-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.form-card h2 { font-size: 1rem; color: #555; margin-bottom: 0.8rem; }
+
+form { display: flex; flex-direction: column; gap: 0.6rem; }
+
+form input, form select {
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  outline: none;
+  transition: border 0.2s;
+  font-family: inherit;
+}
+
+form input:focus, form select:focus { border-color: #667eea; }
+
+.member-select-row { display: flex; flex-direction: column; gap: 0.3rem; }
+.field-label { font-size: 0.82rem; color: #888; font-weight: 600; }
+.type-buttons { display: flex; gap: 0.5rem; }
+
+.btn-husband, .btn-wife {
+  flex: 1;
+  padding: 0.65rem;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-husband { background: #eff8ff; color: #2980b9; border-color: #74b9ff; }
+.btn-husband.active { background: #74b9ff; color: white; border-color: #74b9ff; }
+
+.btn-wife { background: #fff0f7; color: #c0392b; border-color: #fd79a8; }
+.btn-wife.active { background: #fd79a8; color: white; border-color: #fd79a8; }
+
+.btn-income, .btn-expense {
+  flex: 1;
+  padding: 0.65rem;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-income  { background: #f0fff4; color: #27ae60; border-color: #27ae60; }
+.btn-income.active  { background: #27ae60; color: white; }
+
+.btn-expense { background: #fff5f5; color: #e74c3c; border-color: #e74c3c; }
+.btn-expense.active { background: #e74c3c; color: white; }
+
+.btn-submit {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-family: inherit;
+}
+
+.btn-submit:hover { opacity: 0.88; }
+
+/* ===== Compare Card ===== */
+.compare-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.compare-card h2 { font-size: 1rem; color: #555; margin-bottom: 0.8rem; }
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.compare-table th, .compare-table td {
+  text-align: center;
+  padding: 0.5rem 0.3rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.compare-table th { color: #888; font-weight: 600; font-size: 0.82rem; }
+.compare-table td:first-child { text-align: left; color: #555; }
+.net-row td { font-weight: bold; color: #333; font-size: 0.95rem; }
+
+/* ===== History Card ===== */
+.history-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.2rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  margin-bottom: 2rem;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.history-header h2 { font-size: 1rem; color: #555; }
+
+.btn-clear {
+  background: #fff0f0;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+  border-radius: 8px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+#transaction-list { list-style: none; }
+
+#transaction-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.4rem;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+#transaction-list li:last-child { border-bottom: none; }
+
+.tx-icon { font-size: 1.3rem; }
+.tx-info { flex: 1; }
+.tx-desc { font-size: 0.95rem; font-weight: 600; color: #333; }
+.tx-meta { font-size: 0.75rem; color: #aaa; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.badge-husband { background: #e8f4fd; color: #2980b9; }
+.badge-wife    { background: #fce8f3; color: #c0392b; }
+
+.tx-amount { font-weight: bold; font-size: 0.95rem; white-space: nowrap; }
+
+.tx-remove {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 0.3rem;
+  flex-shrink: 0;
+}
+
+.tx-remove:hover { color: #e74c3c; }
+
+.empty-msg {
+  text-align: center;
+  color: #bbb;
+  font-size: 0.9rem;
+  padding: 1.2rem 0;
+}
+
+@media (max-width: 420px) {
+  .balance-amount { font-size: 2rem; }
+  h1 { font-size: 1.3rem; }
+  .compare-table { font-size: 0.82rem; }
+}
