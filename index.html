@@ -52,54 +52,6 @@
       </div>
     </div>
 
-    <!-- ===== ទម្រង់បំពេញ ===== -->
-    <div class="form-card">
-      <h2>➕ បន្ថែម</h2>
-      <form id="transaction-form">
-        <input type="text" id="desc" placeholder="ពិពណ៌នា (ឧ. ទឹកដោះគោ, ប្រាក់ខែ)" required>
-        <input type="number" id="amount" placeholder="ចំនួនទឹកប្រាក់ ($)" min="0" step="0.01" required>
-
-        <select id="category">
-          <option value="ប្រាក់ខែ">💼 ប្រាក់ខែ</option>
-          <option value="អាជីវកម្ម">🏪 អាជីវកម្ម</option>
-          <option value="ចំណូលផ្សេង">📦 ចំណូលផ្សេង</option>
-          <option value="អាហារ">🍚 អាហារ</option>
-          <option value="ចំណាយផ្ទះ">🏠 ចំណាយផ្ទះ</option>
-          <option value="សុខភាព">🏥 សុខភាព</option>
-          <option value="ការសិក្សា">📚 ការសិក្សា</option>
-          <option value="ចំណាយផ្សេង">🛒 ចំណាយផ្សេង</option>
-        </select>
-
-        <!-- ប្ដី / ប្រពន្ធ -->
-        <div class="member-select-row">
-          <p class="field-label">👤 សមាជិក</p>
-          <div class="type-buttons">
-            <button type="button" class="btn-husband active" id="btn-husband" onclick="selectMemberInput('husband')">
-              👨 ប្ដី
-            </button>
-            <button type="button" class="btn-wife" id="btn-wife" onclick="selectMemberInput('wife')">
-              👩 ប្រពន្ធ
-            </button>
-          </div>
-        </div>
-
-        <!-- ចំណូល / ចំណាយ -->
-        <div class="member-select-row">
-          <p class="field-label">💱 ប្រភេទ</p>
-          <div class="type-buttons">
-            <button type="button" class="btn-income active" id="btn-income" onclick="selectType('income')">
-              ➕ ចំណូល
-            </button>
-            <button type="button" class="btn-expense" id="btn-expense" onclick="selectType('expense')">
-              ➖ ចំណាយ
-            </button>
-          </div>
-        </div>
-
-        <button type="submit" class="btn-submit">💾 រក្សាទុក</button>
-      </form>
-    </div>
-
     <!-- ===== ប្រៀបធៀបប្ដី ប្រពន្ធ ===== -->
     <div class="compare-card">
       <h2>📊 ប្រៀបធៀបប្ដី / ប្រពន្ធ</h2>
@@ -135,12 +87,84 @@
     <div class="history-card">
       <div class="history-header">
         <h2>📋 ប្រវត្តិ</h2>
-        <button class="btn-clear" onclick="clearAll()">🗑️ លុបទាំងអស់</button>
+        <div class="history-controls">
+          <select id="month-filter" onchange="applyMonthFilter(this.value)">
+            <option value="">📅 ទាំងអស់</option>
+          </select>
+          <button class="btn-clear" onclick="clearAll()">🗑️ លុប</button>
+        </div>
       </div>
       <ul id="transaction-list"></ul>
     </div>
 
   </div>
+
+  <!-- ===== Floating Add Button ===== -->
+  <button class="fab" onclick="openModal()" title="បន្ថែម">＋</button>
+
+  <!-- ===== Modal Overlay ===== -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+
+  <!-- ===== Modal (Bottom Sheet) ===== -->
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2>➕ បន្ថែមប្រចាំថ្ងៃ</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <!-- Current balance preview -->
+    <div class="modal-balance">
+      <span class="modal-balance-label">💰 សមតុល្យបច្ចុប្បន្ន</span>
+      <span id="modal-balance-val">$0.00</span>
+    </div>
+
+    <form id="transaction-form">
+      <input type="text" id="desc" placeholder="ពិពណ៌នា (ឧ. ទិញកាហ្វេ, ទឹកដោះគោ)" required>
+      <input type="number" id="amount" placeholder="ចំនួនទឹកប្រាក់ ($)" min="0" step="0.01" required>
+
+      <select id="category">
+        <option value="អាហារ + កាហ្វេ" selected>☕ អាហារ + កាហ្វេ</option>
+        <option value="អាហារ">🍚 អាហារ</option>
+        <option value="ចំណាយផ្ទះ">🏠 ចំណាយផ្ទះ</option>
+        <option value="សុខភាព">🏥 សុខភាព</option>
+        <option value="ការសិក្សា">📚 ការសិក្សា</option>
+        <option value="ចំណាយផ្សេង">🛒 ចំណាយផ្សេង</option>
+        <option value="ប្រាក់ខែ">💼 ប្រាក់ខែ</option>
+        <option value="អាជីវកម្ម">🏪 អាជីវកម្ម</option>
+        <option value="ចំណូលផ្សេង">📦 ចំណូលផ្សេង</option>
+      </select>
+
+      <!-- ប្ដី / ប្រពន្ធ -->
+      <div class="member-select-row">
+        <p class="field-label">👤 សមាជិក</p>
+        <div class="type-buttons">
+          <button type="button" class="btn-husband active" id="btn-husband" onclick="selectMemberInput('husband')">
+            👨 ប្ដី
+          </button>
+          <button type="button" class="btn-wife" id="btn-wife" onclick="selectMemberInput('wife')">
+            👩 ប្រពន្ធ
+          </button>
+        </div>
+      </div>
+
+      <!-- ចំណូល / ចំណាយ -->
+      <div class="member-select-row">
+        <p class="field-label">💱 ប្រភេទ</p>
+        <div class="type-buttons">
+          <button type="button" class="btn-income" id="btn-income" onclick="selectType('income')">
+            ➕ ចំណូល
+          </button>
+          <button type="button" class="btn-expense active" id="btn-expense" onclick="selectType('expense')">
+            ➖ ចំណាយ
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit">💾 រក្សាទុក</button>
+    </form>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

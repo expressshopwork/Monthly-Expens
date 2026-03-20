@@ -2,9 +2,10 @@
 //  STATE
 // ============================================================
 let transactions   = JSON.parse(localStorage.getItem('family_transactions')) || [];
-let selectedType   = 'income';
+let selectedType   = 'expense';
 let selectedMember = 'husband';
 let filterView     = 'all'; // 'all' | 'husband' | 'wife'
+let filterMonth    = '';    // '' = all, or 'M/YYYY'
 
 // ============================================================
 //  DOM
@@ -18,6 +19,88 @@ const form           = document.getElementById('transaction-form');
 const descInput      = document.getElementById('desc');
 const amountInput    = document.getElementById('amount');
 const categoryInput  = document.getElementById('category');
+
+// ============================================================
+//  MODAL
+// ============================================================
+window.openModal = function() {
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('modal-overlay').classList.add('open');
+  updateModalBalance();
+  setTimeout(() => document.getElementById('desc').focus(), 350);
+};
+
+window.closeModal = function() {
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('modal-overlay').classList.remove('open');
+};
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+function updateModalBalance() {
+  const filtered = filterView === 'all'
+    ? transactions
+    : transactions.filter(t => t.member === filterView);
+  const balance = sumBy(filtered, 'income') - sumBy(filtered, 'expense');
+  const el = document.getElementById('modal-balance-val');
+  if (el) {
+    el.textContent = '$' + balance.toFixed(2);
+    el.style.color = balance >= 0 ? '#27ae60' : '#e74c3c';
+  }
+}
+
+// ============================================================
+//  MONTH FILTER HELPERS
+// ============================================================
+function getMonthKey(dateStr) {
+  const parts = dateStr.split('/'); // D/M/YYYY
+  return parts[1] + '/' + parts[2]; // M/YYYY
+}
+
+function getMonthLabel(monthKey) {
+  const [m, y] = monthKey.split('/');
+  const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+  try {
+    return d.toLocaleDateString('km-KH', { month: 'long', year: 'numeric' });
+  } catch (e) {
+    return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  }
+}
+
+function populateMonthFilter() {
+  const sel = document.getElementById('month-filter');
+  if (!sel) return;
+
+  const months = new Set();
+  transactions.forEach(t => { if (t.date) months.add(getMonthKey(t.date)); });
+
+  // Always include the current month
+  const now = new Date();
+  months.add((now.getMonth() + 1) + '/' + now.getFullYear());
+
+  // Sort newest-first
+  const sorted = [...months].sort((a, b) => {
+    const [am, ay] = a.split('/').map(Number);
+    const [bm, by] = b.split('/').map(Number);
+    return (by * 12 + bm) - (ay * 12 + am);
+  });
+
+  sel.innerHTML = '<option value="">📅 ទាំងអស់</option>';
+  sorted.forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = getMonthLabel(key);
+    if (key === filterMonth) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+window.applyMonthFilter = function(month) {
+  filterMonth = month;
+  renderList();
+};
 
 // ============================================================
 //  SELECT TYPE (ចំណូល / ចំណាយ)
@@ -56,10 +139,11 @@ window.filterMember = function(view) {
 //  HELPERS
 // ============================================================
 const categoryIcons = {
-  'ប្រាក់ខែ':    '💼', 'អាជីវកម្ម':  '🏪',
-  'ចំណូលផ្សេង': '📦', 'អាហារ':      '🍚',
-  'ចំណាយផ្ទះ':  '🏠', 'សុខភាព':    '🏥',
-  'ការសិក្សា':  '📚', 'ចំណាយផ្សេង': '🛒',
+  'ប្រាក់ខែ':         '💼', 'អាជីវកម្ម':      '🏪',
+  'ចំណូលផ្សេង':      '📦', 'អាហារ':           '🍚',
+  'ចំណាយផ្ទះ':       '🏠', 'សុខភាព':         '🏥',
+  'ការសិក្សា':       '📚', 'ចំណាយផ្សេង':     '🛒',
+  'អាហារ + កាហ្វេ':  '☕',
 };
 
 function fmt(n) { return '$' + Math.abs(n).toFixed(2); }
@@ -139,9 +223,14 @@ function updateVsBar() {
 function renderList() {
   listEl.innerHTML = '';
 
-  const filtered = filterView === 'all'
+  let filtered = filterView === 'all'
     ? [...transactions].reverse()
     : [...transactions].filter(t => t.member === filterView).reverse();
+
+  // Apply monthly filter
+  if (filterMonth) {
+    filtered = filtered.filter(t => t.date && getMonthKey(t.date) === filterMonth);
+  }
 
   if (filtered.length === 0) {
     listEl.innerHTML = '<li><p class="empty-msg">មិនទាន់មានធាតុណាមួយ</p></li>';
@@ -224,8 +313,9 @@ form.addEventListener('submit', function(e) {
 
   saveAndRender();
   form.reset();
-  selectType('income');
+  selectType('expense');
   selectMemberInput('husband');
+  closeModal();
 });
 
 // ============================================================
@@ -234,6 +324,7 @@ form.addEventListener('submit', function(e) {
 function saveAndRender() {
   localStorage.setItem('family_transactions', JSON.stringify(transactions));
   updateSummary();
+  populateMonthFilter();
   renderList();
 }
 
