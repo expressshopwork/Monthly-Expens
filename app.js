@@ -663,6 +663,49 @@ window.closeReport = function() {
   document.getElementById('report-overlay').classList.remove('open');
 };
 
+window.saveMonthlyReport = function() {
+  const reportMonthKey = filterMonth || getCurrentMonthKey();
+  const monthLabel = getMonthLabel(reportMonthKey);
+
+  const monthTx = transactions.filter(t => t.date && getMonthKey(t.date) === reportMonthKey);
+  const income  = sumBy(monthTx, 'income');
+  const expense = sumBy(monthTx, 'expense');
+  const balance = income - expense;
+
+  const archives = JSON.parse(localStorage.getItem('monthly_archives')) || [];
+  const existingIdx = archives.findIndex(a => a.monthKey === reportMonthKey);
+  const record = {
+    monthKey: reportMonthKey,
+    monthLabel,
+    income,
+    expense,
+    balance,
+    budgetTargets: Object.assign({}, budgetTargets),
+    savedAt: new Date().toISOString(),
+  };
+
+  if (existingIdx >= 0) {
+    archives[existingIdx] = record;
+  } else {
+    archives.push(record);
+  }
+  localStorage.setItem('monthly_archives', JSON.stringify(archives));
+  showToast(`💾 រក្សាទុករបាយការណ៍ ${monthLabel} បានជោគជ័យ!`, 'success');
+};
+
+window.resetForNextMonth = function() {
+  const reportMonthKey = filterMonth || getCurrentMonthKey();
+  const monthLabel = getMonthLabel(reportMonthKey);
+  if (!confirm(`ចាប់ផ្ដើមខែថ្មី?\nថវិកាទាំងអស់នឹងត្រូវបំបាត់ ដើម្បីអ្នកអាចកំណត់ថ្មីសម្រាប់ខែក្រោយ។\n(ប្រវត្តិប្រតិបត្តិការទាំងអស់ រួមទាំក ${monthLabel} នឹងនៅដដែល)`)) return;
+
+  budgetTargets = {};
+  localStorage.setItem('family_budget_targets', JSON.stringify(budgetTargets));
+  filterMonth = '';
+  saveAndRender();
+  closeReport();
+  showToast('🔄 ថវិការត្រូវបានកំណត់ឡើងវិញ! បន្ថែមថវិកាសម្រាប់ខែថ្មី។', 'info');
+};
+
 // ============================================================
 //  GOOGLE SHEETS SYNC
 // ============================================================
