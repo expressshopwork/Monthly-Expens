@@ -1,4 +1,57 @@
 // ============================================================
+//  AUTH
+// ============================================================
+const ALLOWED_USERS = ['rim.saray', 'kab.sreyrath'];
+const SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6QNoURQ4n8DPtKlmS1HCArFUEi-izFtRKPNpG_WAlOQZOoDxQEIIk_uZM1hPcDX7k_Q/exec';
+let sheetsWebAppUrl = localStorage.getItem('sheets_web_app_url') || SHEETS_WEB_APP_URL;
+
+function getCurrentUser() {
+  return localStorage.getItem('current_user') || '';
+}
+
+window.loginAs = async function(username) {
+  if (!ALLOWED_USERS.includes(username)) return;
+  localStorage.setItem('current_user', username);
+  showApp(username);
+  // Auto-load latest data from Google Sheets for cross-device sync
+  try {
+    const url = SHEETS_WEB_APP_URL + '?action=load';
+    const resp = await fetch(url);
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      transactions = result.transactions || [];
+      budgetTargets = result.budgetTargets || {};
+      saveAndRender();
+    }
+  } catch (_) {
+    // No network or sheets not configured – use local data
+    saveAndRender();
+  }
+};
+
+window.logout = function() {
+  localStorage.removeItem('current_user');
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+};
+
+function showApp(username) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = '';
+  const badge = document.getElementById('user-badge');
+  if (badge) badge.textContent = '👤 ' + username;
+}
+
+// Check login state on load
+(function initAuth() {
+  const user = getCurrentUser();
+  if (user && ALLOWED_USERS.includes(user)) {
+    showApp(user);
+  }
+  // If not logged in, login screen is already visible (display:flex via CSS default)
+})();
+
+// ============================================================
 //  STATE
 // ============================================================
 let transactions   = JSON.parse(localStorage.getItem('family_transactions')) || [];
@@ -7,8 +60,6 @@ let selectedType   = 'expense';
 let selectedMember = 'husband';
 let filterView     = 'all'; // 'all' | 'husband' | 'wife'
 let filterMonth    = '';    // '' = all, or 'M/YYYY'
-const SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6QNoURQ4n8DPtKlmS1HCArFUEi-izFtRKPNpG_WAlOQZOoDxQEIIk_uZM1hPcDX7k_Q/exec';
-let sheetsWebAppUrl = SHEETS_WEB_APP_URL;
 
 const EXPENSE_CATEGORIES = [
   'អាហារ + កាហ្វេ', 'ការធ្វើដំណើរ', 'ចំណាយផ្ទះ',
