@@ -660,6 +660,16 @@ async function loadFromSheets() {
 }
 window.loadFromSheets = loadFromSheets;
 
+window.fabRefresh = async function() {
+  const btn = document.getElementById('btn-fab-refresh');
+  if (btn) btn.classList.add('spinning');
+  try {
+    await loadFromSheets();
+  } finally {
+    if (btn) btn.classList.remove('spinning');
+  }
+};
+
 window.saveSheetUrl = function() {
   const input = document.getElementById('sheets-url-input');
   if (input) {
