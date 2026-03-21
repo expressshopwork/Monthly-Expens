@@ -33,6 +33,8 @@ function showToast(message, type = 'success', duration = 3000) {
 //  AUTH
 // ============================================================
 const ALLOWED_USERS = ['rim.saray', 'kab.sreyrath'];
+const USER_MEMBER_MAP   = { 'rim.saray': 'husband', 'kab.sreyrath': 'wife' };
+const USER_DISPLAY_NAMES = { 'rim.saray': 'Saray', 'kab.sreyrath': 'Sreyrath' };
 const SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6QNoURQ4n8DPtKlmS1HCArFUEi-izFtRKPNpG_WAlOQZOoDxQEIIk_uZM1hPcDX7k_Q/exec';
 let sheetsWebAppUrl = localStorage.getItem('sheets_web_app_url') || SHEETS_WEB_APP_URL;
 
@@ -44,6 +46,9 @@ window.loginAs = async function(username) {
   if (!ALLOWED_USERS.includes(username)) return;
   localStorage.setItem('current_user', username);
   showApp(username);
+  // Switch to the logged-in user's member view immediately
+  const member = USER_MEMBER_MAP[username];
+  if (member) filterMember(member);
   // Auto-load latest data from Google Sheets for cross-device sync
   try {
     const url = SHEETS_WEB_APP_URL + '?action=load';
@@ -70,7 +75,12 @@ function showApp(username) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('main-app').style.display = '';
   const badge = document.getElementById('user-badge');
-  if (badge) badge.textContent = '👤 ' + username;
+  if (badge) {
+    const displayName = USER_DISPLAY_NAMES[username] || username;
+    const memberIcon  = USER_MEMBER_MAP[username] === 'husband' ? '👨'
+                      : USER_MEMBER_MAP[username] === 'wife'    ? '👩' : '👤';
+    badge.textContent = memberIcon + ' ' + displayName;
+  }
 }
 
 // Check login state on load
@@ -126,6 +136,10 @@ window.openModal = function() {
     const d = String(now.getDate()).padStart(2, '0');
     txnDateEl.value = `${y}-${m}-${d}`;
   }
+  // Pre-select current user's member
+  const currentUser = getCurrentUser();
+  const defaultMember = USER_MEMBER_MAP[currentUser];
+  if (defaultMember) selectMemberInput(defaultMember);
   setTimeout(() => document.getElementById('desc').focus(), 350);
 };
 
@@ -573,7 +587,9 @@ form.addEventListener('submit', function(e) {
   // Clear date field so next modal open defaults to today
   if (txnDateEl) txnDateEl.value = '';
   selectType('expense');
-  selectMemberInput('husband');
+  // Reset member to current user's default
+  const _submitUser = getCurrentUser();
+  selectMemberInput(USER_MEMBER_MAP[_submitUser] || 'husband');
   closeModal();
 });
 
@@ -610,8 +626,14 @@ document.getElementById('budget-list').addEventListener('change', function(e) {
 
 saveAndRender();
 
-// ============================================================
-//  MONTHLY REPORT
+// On page load, auto-filter to the returning user's member view
+{
+  const _initUser = getCurrentUser();
+  const _initMember = USER_MEMBER_MAP[_initUser];
+  if (_initMember) filterMember(_initMember);
+}
+
+
 // ============================================================
 window.showMonthlyReport = function() {
   const reportMonthKey = filterMonth || getCurrentMonthKey();
