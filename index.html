@@ -195,7 +195,10 @@ function doGet(e) {
 
     <!-- ===== គោលដៅចំណាយ ===== -->
     <div class="budget-card">
-      <h2>🎯 គោលដៅចំណាយប្រចាំខែ</h2>
+      <div class="budget-card-header">
+        <h2>🎯 គោលដៅចំណាយប្រចាំខែ</h2>
+        <button class="btn-save-budget" onclick="saveBudgetTargets()">💾 រក្សាទុក</button>
+      </div>
       <ul id="budget-list"></ul>
       <div id="budget-summary" class="budget-summary" style="display:none"></div>
       <button class="btn-close-report" onclick="showMonthlyReport()">📊 បិទរបាយការណ៍ប្រចាំខែ</button>
