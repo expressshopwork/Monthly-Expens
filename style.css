@@ -349,6 +349,42 @@ form input:focus, form select:focus { border-color: #667eea; }
   box-shadow: 0 6px 22px rgba(102,126,234,0.65);
 }
 
+/* ===== Floating Refresh Button ===== */
+.fab-refresh {
+  position: fixed;
+  bottom: 5.5rem;
+  right: 1.5rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #43cea2, #185a9d);
+  color: white;
+  font-size: 1.4rem;
+  border: none;
+  box-shadow: 0 4px 14px rgba(67,206,162,0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  transition: transform 0.2s, box-shadow 0.2s;
+  line-height: 1;
+}
+
+.fab-refresh:not(.spinning):hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(67,206,162,0.65);
+}
+
+.fab-refresh.spinning {
+  animation: fab-spin 1s linear infinite;
+}
+
+@keyframes fab-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ===== Modal Overlay ===== */
 .modal-overlay {
   position: fixed;
