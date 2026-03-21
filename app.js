@@ -118,6 +118,7 @@ function populateMonthFilter() {
 window.applyMonthFilter = function(month) {
   filterMonth = month;
   renderList();
+  renderBudgets();
 };
 
 // ============================================================
@@ -244,6 +245,32 @@ function updateVsBar() {
 // ============================================================
 //  RENDER LIST
 // ============================================================
+function renderTransactionItem(t) {
+  const realIdx = transactions.indexOf(t);
+  const icon    = categoryIcons[t.category] || (t.type === 'income' ? '📈' : '📉');
+  const badge   = t.member === 'husband'
+    ? '<span class="badge badge-husband">👨 ប្ដី</span>'
+    : '<span class="badge badge-wife">👩 ប្រពន្ធ</span>';
+
+  const li = document.createElement('li');
+  li.innerHTML = `
+    <span class="tx-icon">${icon}</span>
+    <div class="tx-info">
+      <div class="tx-desc">${t.desc}</div>
+      <div class="tx-meta">
+        ${badge}
+        <span>${t.category}</span>
+        <span>${t.date}</span>
+      </div>
+    </div>
+    <span class="tx-amount ${t.type === 'income' ? 'plus' : 'minus'}">
+      ${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}
+    </span>
+    <button class="tx-remove" onclick="removeTransaction(${realIdx})">×</button>
+  `;
+  return li;
+}
+
 function renderList() {
   listEl.innerHTML = '';
 
@@ -254,38 +281,31 @@ function renderList() {
   // Apply monthly filter
   if (filterMonth) {
     filtered = filtered.filter(t => t.date && getMonthKey(t.date) === filterMonth);
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<li><p class="empty-msg">មិនទាន់មានធាតុណាមួយ</p></li>';
+      return;
+    }
+
+    filtered.forEach(t => listEl.appendChild(renderTransactionItem(t)));
+  } else {
+    // No month filter: show only the last 10 transactions
+    const totalCount = filtered.length;
+    filtered = filtered.slice(0, 10);
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<li><p class="empty-msg">មិនទាន់មានធាតុណាមួយ</p></li>';
+      return;
+    }
+
+    filtered.forEach(t => listEl.appendChild(renderTransactionItem(t)));
+
+    if (totalCount > 10) {
+      const note = document.createElement('li');
+      note.innerHTML = `<p class="empty-msg tx-more-note">📅 មាន ${totalCount} ធាតុ · ជ្រើសរើសខែដើម្បីមើលទាំងអស់</p>`;
+      listEl.appendChild(note);
+    }
   }
-
-  if (filtered.length === 0) {
-    listEl.innerHTML = '<li><p class="empty-msg">មិនទាន់មានធាតុណាមួយ</p></li>';
-    return;
-  }
-
-  filtered.forEach(t => {
-    const realIdx = transactions.indexOf(t);
-    const icon    = categoryIcons[t.category] || (t.type === 'income' ? '📈' : '📉');
-    const badge   = t.member === 'husband'
-      ? '<span class="badge badge-husband">👨 ប្ដី</span>'
-      : '<span class="badge badge-wife">👩 ប្រពន្ធ</span>';
-
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <span class="tx-icon">${icon}</span>
-      <div class="tx-info">
-        <div class="tx-desc">${t.desc}</div>
-        <div class="tx-meta">
-          ${badge}
-          <span>${t.category}</span>
-          <span>${t.date}</span>
-        </div>
-      </div>
-      <span class="tx-amount ${t.type === 'income' ? 'plus' : 'minus'}">
-        ${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}
-      </span>
-      <button class="tx-remove" onclick="removeTransaction(${realIdx})">×</button>
-    `;
-    listEl.appendChild(li);
-  });
 }
 
 // ============================================================
@@ -300,7 +320,16 @@ function renderBudgets() {
   const budgetList = document.getElementById('budget-list');
   if (!budgetList) return;
 
-  const currentMonthKey = getCurrentMonthKey();
+  // Use selected month filter, or current month if none selected
+  const monthKey = filterMonth || getCurrentMonthKey();
+  const monthLabel = getMonthLabel(monthKey);
+
+  // Update heading to reflect the displayed month
+  const budgetHeading = document.querySelector('.budget-card h2');
+  if (budgetHeading) {
+    budgetHeading.textContent = `🎯 គោលដៅចំណាយ (${monthLabel})`;
+  }
+
   budgetList.innerHTML = '';
 
   EXPENSE_CATEGORIES.forEach(cat => {
@@ -309,7 +338,7 @@ function renderBudgets() {
 
     const spent = transactions
       .filter(t => t.type === 'expense' && t.category === cat &&
-                   t.date && getMonthKey(t.date) === currentMonthKey)
+                   t.date && getMonthKey(t.date) === monthKey)
       .reduce((s, t) => s + t.amount, 0);
 
     const icon      = categoryIcons[cat] || '📉';
@@ -358,7 +387,7 @@ function renderBudgets() {
   if (summaryEl) {
     if (totalTarget > 0) {
       const monthIncome = transactions
-        .filter(t => t.type === 'income' && t.date && getMonthKey(t.date) === currentMonthKey)
+        .filter(t => t.type === 'income' && t.date && getMonthKey(t.date) === monthKey)
         .reduce((s, t) => s + t.amount, 0);
       const diff   = monthIncome - totalTarget;
       const isOver = diff < 0;
@@ -482,10 +511,10 @@ saveAndRender();
 //  MONTHLY REPORT
 // ============================================================
 window.showMonthlyReport = function() {
-  const currentMonthKey = getCurrentMonthKey();
-  const monthLabel = getMonthLabel(currentMonthKey);
+  const reportMonthKey = filterMonth || getCurrentMonthKey();
+  const monthLabel = getMonthLabel(reportMonthKey);
 
-  const monthTx = transactions.filter(t => t.date && getMonthKey(t.date) === currentMonthKey);
+  const monthTx = transactions.filter(t => t.date && getMonthKey(t.date) === reportMonthKey);
   const income  = sumBy(monthTx, 'income');
   const expense = sumBy(monthTx, 'expense');
   const balance = income - expense;
