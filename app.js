@@ -33,6 +33,15 @@ window.openModal = function() {
   document.getElementById('modal').classList.add('open');
   document.getElementById('modal-overlay').classList.add('open');
   updateModalBalance();
+  // Pre-fill date with today
+  const txnDateEl = document.getElementById('txn-date');
+  if (txnDateEl && !txnDateEl.value) {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    txnDateEl.value = `${y}-${m}-${d}`;
+  }
   setTimeout(() => document.getElementById('desc').focus(), 350);
 };
 
@@ -42,7 +51,10 @@ window.closeModal = function() {
 };
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape') {
+    closeModal();
+    closeReport();
+  }
 });
 
 function updateModalBalance() {
@@ -153,6 +165,12 @@ const categoryIcons = {
 };
 
 function fmt(n) { return '$' + Math.abs(n).toFixed(2); }
+
+// Convert HTML date input value (YYYY-MM-DD) to app format (D/M/YYYY)
+function dateFromInput(value) {
+  const [year, month, day] = value.split('-');
+  return `${parseInt(day)}/${parseInt(month)}/${year}`;
+}
 
 function sumBy(list, type) {
   return list.filter(t => t.type === type).reduce((s, t) => s + t.amount, 0);
@@ -401,8 +419,15 @@ form.addEventListener('submit', function(e) {
 
   if (!desc || isNaN(amount) || amount <= 0) return;
 
-  const now  = new Date();
-  const date = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+  // Use date input value; fall back to today if empty
+  let date;
+  const txnDateEl = document.getElementById('txn-date');
+  if (txnDateEl && txnDateEl.value) {
+    date = dateFromInput(txnDateEl.value);
+  } else {
+    const now = new Date();
+    date = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+  }
 
   transactions.push({
     desc,
@@ -415,6 +440,8 @@ form.addEventListener('submit', function(e) {
 
   saveAndRender();
   form.reset();
+  // Clear date field so next modal open defaults to today
+  if (txnDateEl) txnDateEl.value = '';
   selectType('expense');
   selectMemberInput('husband');
   closeModal();
@@ -450,3 +477,73 @@ document.getElementById('budget-list').addEventListener('change', function(e) {
 });
 
 saveAndRender();
+
+// ============================================================
+//  MONTHLY REPORT
+// ============================================================
+window.showMonthlyReport = function() {
+  const currentMonthKey = getCurrentMonthKey();
+  const monthLabel = getMonthLabel(currentMonthKey);
+
+  const monthTx = transactions.filter(t => t.date && getMonthKey(t.date) === currentMonthKey);
+  const income  = sumBy(monthTx, 'income');
+  const expense = sumBy(monthTx, 'expense');
+  const balance = income - expense;
+
+  // Find over-budget categories
+  const overBudgetItems = [];
+  EXPENSE_CATEGORIES.forEach(cat => {
+    const target = budgetTargets[cat];
+    if (!target || target <= 0) return;
+    const spent = monthTx
+      .filter(t => t.type === 'expense' && t.category === cat)
+      .reduce((s, t) => s + t.amount, 0);
+    if (spent > target) {
+      overBudgetItems.push({ cat, target, spent, over: spent - target });
+    }
+  });
+
+  const overHTML = overBudgetItems.length === 0
+    ? '<p class="report-ok">✅ គ្មានប្រភេទណាមួយលើសថវិកា</p>'
+    : overBudgetItems.map(item => `
+        <div class="report-over-item">
+          <span class="report-over-cat">${categoryIcons[item.cat] || '📉'} ${item.cat}</span>
+          <div class="report-over-detail">
+            <span>🎯 ${fmt(item.target)} → 📉 ${fmt(item.spent)}</span>
+            <span class="minus report-over-amount">⚠️ +${fmt(item.over)} លើស</span>
+          </div>
+        </div>
+      `).join('');
+
+  const content = document.getElementById('report-content');
+  if (content) {
+    content.innerHTML = `
+      <div class="report-month-label">${monthLabel}</div>
+      <div class="report-summary-block">
+        <div class="report-row">
+          <span>📈 ចំណូលសរុប</span>
+          <span class="plus">${fmt(income)}</span>
+        </div>
+        <div class="report-row">
+          <span>📉 ចំណាយសរុប</span>
+          <span class="minus">${fmt(expense)}</span>
+        </div>
+        <div class="report-divider"></div>
+        <div class="report-balance-row ${balance >= 0 ? 'report-balance-ok' : 'report-balance-over'}">
+          <span>${balance >= 0 ? '✅ សមតុល្យនៅសល់' : '⚠️ សមតុល្យខ្វះ'}</span>
+          <span>${balance >= 0 ? '+' : '-'}${fmt(Math.abs(balance))}</span>
+        </div>
+      </div>
+      <h3 class="report-section-title">🔴 ប្រភេទចំណាយដែលលើសថវិកា</h3>
+      <div class="report-over-list">${overHTML}</div>
+    `;
+  }
+
+  document.getElementById('report-modal').classList.add('open');
+  document.getElementById('report-overlay').classList.add('open');
+};
+
+window.closeReport = function() {
+  document.getElementById('report-modal').classList.remove('open');
+  document.getElementById('report-overlay').classList.remove('open');
+};

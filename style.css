@@ -573,3 +573,133 @@ form input:focus, form select:focus { border-color: #667eea; }
   background: rgba(231, 76, 60, 0.11);
   color: #e74c3c;
 }
+
+/* ===== Close Monthly Report Button ===== */
+.btn-close-report {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-close-report:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-close-report:active { transform: translateY(0); }
+
+/* ===== Date Field in Form ===== */
+.date-field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: #888;
+  font-weight: 600;
+}
+
+.date-field-label input[type="date"] {
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  outline: none;
+  transition: border 0.2s;
+  font-family: inherit;
+  color: #333;
+  background: white;
+  width: 100%;
+}
+
+.date-field-label input[type="date"]:focus { border-color: #667eea; }
+
+/* ===== Monthly Report Modal Content ===== */
+.report-month-label {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 0.9rem;
+}
+
+.report-summary-block {
+  background: #f8f7ff;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.report-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #555;
+  padding: 0.3rem 0;
+}
+
+.report-divider {
+  border-top: 1px solid #e0e0e0;
+  margin: 0.5rem 0;
+}
+
+.report-balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.55rem 0.8rem;
+  border-radius: 10px;
+  margin-top: 0.3rem;
+}
+
+.report-balance-ok   { background: rgba(46,213,115,0.15); color: #27ae60; }
+.report-balance-over { background: rgba(231,76,60,0.12);  color: #e74c3c; }
+
+.report-section-title {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 0.6rem;
+  font-weight: 700;
+}
+
+.report-over-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+
+.report-over-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background: rgba(231,76,60,0.07);
+  border-left: 3px solid #e74c3c;
+  border-radius: 0 8px 8px 0;
+  padding: 0.55rem 0.75rem;
+}
+
+.report-over-cat { font-size: 0.9rem; font-weight: 700; color: #333; }
+
+.report-over-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #888;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.report-over-amount { font-weight: 700; }
+
+.report-ok {
+  text-align: center;
+  color: #27ae60;
+  font-size: 0.9rem;
+  padding: 0.8rem 0;
+  font-weight: 600;
+}
