@@ -142,9 +142,7 @@ document.addEventListener('keydown', function(e) {
 });
 
 function updateModalBalance() {
-  const filtered = filterView === 'all'
-    ? transactions
-    : transactions.filter(t => t.member === filterView);
+  const filtered = getFilteredTransactions();
   const balance = sumBy(filtered, 'income') - sumBy(filtered, 'expense');
   const el = document.getElementById('modal-balance-val');
   if (el) {
@@ -201,8 +199,7 @@ function populateMonthFilter() {
 
 window.applyMonthFilter = function(month) {
   filterMonth = month;
-  updateCompare();
-  updateVsBar();
+  updateSummary();
   renderList();
   renderBudgets();
 };
@@ -263,13 +260,22 @@ function sumBy(list, type) {
   return list.filter(t => t.type === type).reduce((s, t) => s + t.amount, 0);
 }
 
+// Returns transactions filtered by filterView and, when active, filterMonth
+function getFilteredTransactions() {
+  let filtered = filterView === 'all'
+    ? transactions
+    : transactions.filter(t => t.member === filterView);
+  if (filterMonth) {
+    filtered = filtered.filter(t => t.date && getMonthKey(t.date) === filterMonth);
+  }
+  return filtered;
+}
+
 // ============================================================
 //  UPDATE SUMMARY
 // ============================================================
 function updateSummary() {
-  const filtered = filterView === 'all'
-    ? transactions
-    : transactions.filter(t => t.member === filterView);
+  const filtered = getFilteredTransactions();
 
   const income  = sumBy(filtered, 'income');
   const expense = sumBy(filtered, 'expense');
@@ -594,6 +600,7 @@ document.getElementById('budget-list').addEventListener('change', function(e) {
     delete budgetTargets[cat];
   }
   localStorage.setItem('family_budget_targets', JSON.stringify(budgetTargets));
+  updateSummary();
   renderBudgets();
 });
 
