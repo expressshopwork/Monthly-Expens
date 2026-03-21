@@ -10,8 +10,35 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <!-- ===== Login Screen ===== -->
+  <div class="login-screen" id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">💰</div>
+      <h1 class="login-title">គ្រួសាររបស់ខ្ញុំ</h1>
+      <p class="login-subtitle">ជ្រើសរើសអ្នកប្រើប្រាស់</p>
+      <div class="login-users">
+        <button class="login-user-btn" onclick="loginAs('rim.saray')">
+          <span class="login-user-avatar">👨</span>
+          <span class="login-user-name">rim.saray</span>
+        </button>
+        <button class="login-user-btn" onclick="loginAs('kab.sreyrath')">
+          <span class="login-user-avatar">👩</span>
+          <span class="login-user-name">kab.sreyrath</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="main-app" style="display:none">
   <div class="container">
-    <h1>💰 គ្រួសាររបស់ខ្ញុំ</h1>
+    <div class="app-header">
+      <h1>💰 គ្រួសាររបស់ខ្ញុំ</h1>
+      <div class="user-bar">
+        <span class="user-badge" id="user-badge"></span>
+        <button class="btn-logout" onclick="logout()" title="ចាកចេញ">🚪</button>
+      </div>
+    </div>
 
     <!-- ===== Google Sheets Sync Bar (hidden) ===== -->
     <div class="sheets-sync-bar" style="display:none">
@@ -276,5 +303,6 @@ function doGet(e) {
     </div>
     <div id="report-content"></div>
   </div>
+  </div><!-- /#main-app -->
 </body>
 </html>
