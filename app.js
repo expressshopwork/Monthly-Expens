@@ -7,7 +7,8 @@ let selectedType   = 'expense';
 let selectedMember = 'husband';
 let filterView     = 'all'; // 'all' | 'husband' | 'wife'
 let filterMonth    = '';    // '' = all, or 'M/YYYY'
-let sheetsWebAppUrl = localStorage.getItem('sheets_web_app_url') || '';
+const SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6QNoURQ4n8DPtKlmS1HCArFUEi-izFtRKPNpG_WAlOQZOoDxQEIIk_uZM1hPcDX7k_Q/exec';
+let sheetsWebAppUrl = SHEETS_WEB_APP_URL;
 
 const EXPENSE_CATEGORIES = [
   'អាហារ + កាហ្វេ', 'ការធ្វើដំណើរ', 'ចំណាយផ្ទះ',
@@ -469,6 +470,7 @@ form.addEventListener('submit', function(e) {
   });
 
   saveAndRender();
+  syncToSheetsQuiet();
   form.reset();
   // Clear date field so next modal open defaults to today
   if (txnDateEl) txnDateEl.value = '';
@@ -612,6 +614,23 @@ async function syncToSheets() {
   }
 }
 window.syncToSheets = syncToSheets;
+
+async function syncToSheetsQuiet() {
+  try {
+    const payload = {
+      action: 'sync',
+      transactions: transactions,
+      budgetTargets: budgetTargets,
+    };
+    await fetch(sheetsWebAppUrl, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.error('Background sync to Google Sheets failed:', err);
+  }
+}
+window.syncToSheetsQuiet = syncToSheetsQuiet;
 
 async function loadFromSheets() {
   if (!sheetsWebAppUrl) {

@@ -13,15 +13,15 @@
   <div class="container">
     <h1>💰 គ្រួសាររបស់ខ្ញុំ</h1>
 
-    <!-- ===== Google Sheets Sync Bar ===== -->
-    <div class="sheets-sync-bar">
+    <!-- ===== Google Sheets Sync Bar (hidden) ===== -->
+    <div class="sheets-sync-bar" style="display:none">
       <button class="btn-sheets-action" id="btn-sync-sheets" onclick="syncToSheets()">📤 Sync to Sheets</button>
       <button class="btn-sheets-action" id="btn-load-sheets" onclick="loadFromSheets()">📥 Load from Sheets</button>
       <button class="btn-sheets-settings" onclick="toggleSettings()">⚙️</button>
     </div>
 
-    <!-- Settings Panel -->
-    <div class="settings-panel" id="settings-panel">
+    <!-- Settings Panel (hidden) -->
+    <div class="settings-panel" id="settings-panel" style="display:none">
       <h3>⚙️ Google Sheets Settings</h3>
       <p>Paste your <strong>Google Apps Script Web App URL</strong> below.</p>
       <p style="font-size:0.82em; color:#aaa;">
