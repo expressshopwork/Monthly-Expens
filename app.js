@@ -32,7 +32,12 @@ function showToast(message, type = 'success', duration = 3000) {
 // ============================================================
 //  AUTH
 // ============================================================
-const ALLOWED_USERS = ['rim.saray', 'kab.sreyrath'];
+const USER_CONFIG = {
+  'rim.saray':    { role: 'husband', member: 'husband' },
+  'kab.sreyrath': { role: 'wife',    member: 'wife'    },
+  'family.child': { role: 'child',   member: 'child'   },
+};
+const ALLOWED_USERS = Object.keys(USER_CONFIG);
 const SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6QNoURQ4n8DPtKlmS1HCArFUEi-izFtRKPNpG_WAlOQZOoDxQEIIk_uZM1hPcDX7k_Q/exec';
 let sheetsWebAppUrl = localStorage.getItem('sheets_web_app_url') || SHEETS_WEB_APP_URL;
 
@@ -40,10 +45,23 @@ function getCurrentUser() {
   return localStorage.getItem('current_user') || '';
 }
 
+function getCurrentUserRole() {
+  return USER_CONFIG[getCurrentUser()]?.role || null;
+}
+
+function getCurrentUserMember() {
+  return USER_CONFIG[getCurrentUser()]?.member || null;
+}
+
+function canDeleteTransaction(t) {
+  return t.member === getCurrentUserMember();
+}
+
 window.loginAs = async function(username) {
   if (!ALLOWED_USERS.includes(username)) return;
   localStorage.setItem('current_user', username);
   showApp(username);
+  applyRoleUI(); // Set up role-based UI before data is rendered
   // Auto-load latest data from Google Sheets for cross-device sync
   try {
     const url = SHEETS_WEB_APP_URL + '?action=load';
@@ -51,7 +69,7 @@ window.loginAs = async function(username) {
     const result = await resp.json();
     if (result.status === 'ok') {
       transactions = result.transactions || [];
-      budgetTargets = result.budgetTargets || {};
+      budgetTargets = migrateBudgetTargets(result.budgetTargets || {});
       saveAndRender();
     }
   } catch (_) {
@@ -83,13 +101,98 @@ function showApp(username) {
 })();
 
 // ============================================================
+//  ROLE-BASED UI  (called after state vars are initialised)
+// ============================================================
+function applyRoleUI() {
+  const user = getCurrentUser();
+  const cfg  = USER_CONFIG[user];
+  if (!cfg) return;
+
+  const { role, member } = cfg;
+
+  const memberTabsEl = document.querySelector('.member-tabs');
+  const compareCard  = document.querySelector('.compare-card');
+  const vsBarWrap    = document.getElementById('vs-bar-wrap');
+  const balanceLbl   = document.getElementById('balance-label');
+
+  if (role === 'child') {
+    if (memberTabsEl) memberTabsEl.style.display = 'none';
+    if (compareCard)  compareCard.style.display  = 'none';
+    if (vsBarWrap)    vsBarWrap.style.display    = 'none';
+    filterView = 'child';
+    if (balanceLbl) balanceLbl.textContent = 'សមតុល្យកូន 👦';
+  } else {
+    if (memberTabsEl) memberTabsEl.style.display = '';
+    if (compareCard)  compareCard.style.display  = '';
+    if (vsBarWrap)    vsBarWrap.style.display    = '';
+    filterView = 'all';
+    if (balanceLbl) balanceLbl.textContent = 'សមតុល្យសរុប';
+    // Reset tab active states
+    document.getElementById('tab-all')    ?.classList.add('active');
+    document.getElementById('tab-husband')?.classList.remove('active');
+    document.getElementById('tab-wife')   ?.classList.remove('active');
+    document.getElementById('tab-child')  ?.classList.remove('active');
+  }
+
+  // Configure form member buttons
+  const btnHusband = document.getElementById('btn-husband');
+  const btnWife    = document.getElementById('btn-wife');
+  const btnChild   = document.getElementById('btn-child');
+
+  [btnHusband, btnWife, btnChild].forEach(btn => {
+    if (!btn) return;
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.display = '';
+    btn.classList.remove('active');
+  });
+
+  if (role === 'husband') {
+    if (btnWife)  { btnWife.disabled  = true; btnWife.style.opacity  = '0.4'; }
+    if (btnChild) { btnChild.disabled = true; btnChild.style.opacity = '0.4'; }
+    if (btnHusband) btnHusband.classList.add('active');
+  } else if (role === 'wife') {
+    if (btnHusband) { btnHusband.disabled = true; btnHusband.style.opacity = '0.4'; }
+    if (btnChild)   { btnChild.disabled   = true; btnChild.style.opacity   = '0.4'; }
+    if (btnWife) btnWife.classList.add('active');
+  } else if (role === 'child') {
+    if (btnHusband) btnHusband.style.display = 'none';
+    if (btnWife)    btnWife.style.display    = 'none';
+    if (btnChild)   btnChild.classList.add('active');
+  }
+
+  selectedMember = member;
+}
+
+// ============================================================
 //  STATE
 // ============================================================
 let transactions   = JSON.parse(localStorage.getItem('family_transactions')) || [];
-let budgetTargets  = JSON.parse(localStorage.getItem('family_budget_targets')) || {};
+
+// Migrate old budget format { cat: number } → { cat: { target, member, startDate, endDate } }
+function migrateBudgetTargets(raw) {
+  const result = {};
+  for (const [cat, val] of Object.entries(raw || {})) {
+    if (typeof val === 'number') {
+      if (!isNaN(val) && val > 0) {
+        result[cat] = { target: val, member: 'all', startDate: '', endDate: '' };
+      }
+    } else if (val && typeof val === 'object') {
+      result[cat] = {
+        target:    val.target    || 0,
+        member:    val.member    || 'all',
+        startDate: val.startDate || '',
+        endDate:   val.endDate   || '',
+      };
+    }
+  }
+  return result;
+}
+
+let budgetTargets  = migrateBudgetTargets(JSON.parse(localStorage.getItem('family_budget_targets')) || {});
 let selectedType   = 'expense';
 let selectedMember = 'husband';
-let filterView     = 'all'; // 'all' | 'husband' | 'wife'
+let filterView     = 'all'; // 'all' | 'husband' | 'wife' | 'child'
 let filterMonth    = '';    // '' = all, or 'M/YYYY'
 
 const EXPENSE_CATEGORIES = [
@@ -214,25 +317,33 @@ window.selectType = function(type) {
 };
 
 // ============================================================
-//  SELECT MEMBER INPUT (ប្ដី / ប្រពន្ធ)
+//  SELECT MEMBER INPUT (ប្ដី / ប្រពន្ធ / កូន)
 // ============================================================
 window.selectMemberInput = function(member) {
+  // Each user can only add transactions for themselves
+  const userMember = getCurrentUserMember();
+  if (userMember && member !== userMember) return;
+
   selectedMember = member;
   document.getElementById('btn-husband').classList.toggle('active', member === 'husband');
   document.getElementById('btn-wife')   .classList.toggle('active', member === 'wife');
+  const btnChild = document.getElementById('btn-child');
+  if (btnChild) btnChild.classList.toggle('active', member === 'child');
 };
 
 // ============================================================
 //  FILTER VIEW (Tab)
 // ============================================================
 window.filterMember = function(view) {
+  if (getCurrentUserRole() === 'child') return; // Child cannot change filter
   filterView = view;
   document.getElementById('tab-all')    .classList.toggle('active', view === 'all');
   document.getElementById('tab-husband').classList.toggle('active', view === 'husband');
   document.getElementById('tab-wife')   .classList.toggle('active', view === 'wife');
+  document.getElementById('tab-child')  .classList.toggle('active', view === 'child');
 
-  const labels = { all: 'សមតុល្យសរុប', husband: 'សមតុល្យប្ដី 👨', wife: 'សមតុល្យប្រពន្ធ 👩' };
-  balanceLabelEl.textContent = labels[view];
+  const labels = { all: 'សមតុល្យសរុប', husband: 'សមតុល្យប្ដី 👨', wife: 'សមតុល្យប្រពន្ធ 👩', child: 'សមតុល្យកូន 👦' };
+  balanceLabelEl.textContent = labels[view] || 'សមតុល្យសរុប';
 
   saveAndRender();
 };
@@ -346,7 +457,13 @@ function renderTransactionItem(t) {
   const icon    = categoryIcons[t.category] || (t.type === 'income' ? '📈' : '📉');
   const badge   = t.member === 'husband'
     ? '<span class="badge badge-husband">👨 ប្ដី</span>'
-    : '<span class="badge badge-wife">👩 ប្រពន្ធ</span>';
+    : t.member === 'wife'
+    ? '<span class="badge badge-wife">👩 ប្រពន្ធ</span>'
+    : '<span class="badge badge-child">👦 កូន</span>';
+
+  const deleteBtn = canDeleteTransaction(t)
+    ? `<button class="tx-remove" onclick="removeTransaction(${realIdx})">×</button>`
+    : '<span style="display:inline-block;width:1.8rem"></span>';
 
   const li = document.createElement('li');
   li.innerHTML = `
@@ -362,7 +479,7 @@ function renderTransactionItem(t) {
     <span class="tx-amount ${t.type === 'income' ? 'plus' : 'minus'}">
       ${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}
     </span>
-    <button class="tx-remove" onclick="removeTransaction(${realIdx})">×</button>
+    ${deleteBtn}
   `;
   return li;
 }
@@ -412,12 +529,20 @@ function getCurrentMonthKey() {
   return (now.getMonth() + 1) + '/' + now.getFullYear();
 }
 
+// Parse D/M/YYYY → Date object (returns Invalid Date on bad input)
+function parseTxDate(dateStr) {
+  if (!dateStr) return new Date(NaN);
+  const p = dateStr.split('/');
+  if (p.length !== 3) return new Date(NaN);
+  return new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+}
+
 function renderBudgets() {
   const budgetList = document.getElementById('budget-list');
   if (!budgetList) return;
 
   // Use selected month filter, or current month if none selected
-  const monthKey = filterMonth || getCurrentMonthKey();
+  const monthKey   = filterMonth || getCurrentMonthKey();
   const monthLabel = getMonthLabel(monthKey);
 
   // Update heading to reflect the displayed month
@@ -428,19 +553,57 @@ function renderBudgets() {
 
   budgetList.innerHTML = '';
 
-  EXPENSE_CATEGORIES.forEach(cat => {
-    const target = budgetTargets[cat];
-    const hasTarget = target !== undefined && target > 0;
+  const role         = getCurrentUserRole();
+  const canEditBudgets = role !== 'child';
 
-    const spent = transactions
-      .filter(t => t.type === 'expense' && t.category === cat &&
-                   t.date && getMonthKey(t.date) === monthKey)
-      .reduce((s, t) => s + t.amount, 0);
+  EXPENSE_CATEGORIES.forEach(cat => {
+    const goalData  = budgetTargets[cat] || {};
+    const target    = typeof goalData === 'number' ? goalData : (goalData.target || 0);
+    const hasTarget = target > 0;
+    const goalMember = typeof goalData === 'object' ? (goalData.member || 'all') : 'all';
+    const startDate  = typeof goalData === 'object' ? (goalData.startDate || '') : '';
+    const endDate    = typeof goalData === 'object' ? (goalData.endDate   || '') : '';
+
+    // Child: only see goals that are for 'all' or 'child'
+    if (role === 'child' && goalMember !== 'all' && goalMember !== 'child') return;
+
+    // Child users always see only their own spending (even for 'all' goals)
+    const effectiveMember = (role === 'child') ? 'child' : goalMember;
+
+    // Calculate spent based on member and date range.
+    // Partial date ranges are intentional: if only startDate is set, spending from
+    // that date onwards is tracked; if only endDate is set, spending up to that date
+    // is tracked; if neither is set, the selected month (filterMonth) is used.
+    const spent = transactions.filter(t => {
+      if (t.type !== 'expense' || t.category !== cat) return false;
+      if (effectiveMember !== 'all' && t.member !== effectiveMember) return false;
+      if (startDate || endDate) {
+        if (!t.date) return false;
+        const txDate = parseTxDate(t.date);
+        if (!isNaN(txDate.getTime())) {
+          if (startDate && txDate < new Date(startDate)) return false;
+          if (endDate) {
+            const endD = new Date(endDate);
+            endD.setHours(23, 59, 59, 999);
+            if (txDate > endD) return false;
+          }
+        }
+      } else {
+        if (!t.date || getMonthKey(t.date) !== monthKey) return false;
+      }
+      return true;
+    }).reduce((s, t) => s + t.amount, 0);
 
     const icon      = categoryIcons[cat] || '📉';
     const remaining = hasTarget ? target - spent : null;
     const isOver    = remaining !== null && remaining < 0;
     const pct       = hasTarget ? Math.min(100, (spent / target) * 100) : 0;
+
+    const memberLabels = { all: '👨‍👩‍👧 ទាំងអស់', husband: '👨 ប្ដី', wife: '👩 ប្រពន្ធ', child: '👦 កូន' };
+    const memberLabel  = memberLabels[goalMember] || '👨‍👩‍👧 ទាំងអស់';
+    const memberOptions = Object.entries(memberLabels).map(([val, lbl]) =>
+      `<option value="${val}" ${goalMember === val ? 'selected' : ''}>${lbl}</option>`
+    ).join('');
 
     const li = document.createElement('li');
     li.className = 'budget-item';
@@ -450,7 +613,7 @@ function renderBudgets() {
         <div class="budget-info">
           <div class="budget-cat-row">
             <span class="budget-cat">${cat}</span>
-            <button class="budget-edit-btn" onclick="editBudgetTarget(this)" title="Edit target">✏️</button>
+            ${canEditBudgets ? `<button class="budget-edit-btn" onclick="editBudgetTarget(this)" title="Edit target">✏️</button>` : ''}
           </div>
           <div class="budget-nums">
             <label class="budget-target-label">🎯
@@ -458,13 +621,34 @@ function renderBudgets() {
                      value="${hasTarget ? target : ''}"
                      placeholder="—"
                      min="0" step="0.01"
-                     data-cat="${cat}">
+                     data-cat="${cat}"
+                     ${canEditBudgets ? '' : 'readonly tabindex="-1"'}>
             </label>
+            ${canEditBudgets
+              ? `<select class="budget-member-select" data-cat="${cat}">${memberOptions}</select>`
+              : `<span class="budget-member-badge">${memberLabel}</span>`}
             <span class="budget-spent-val">📉 ${fmt(spent)}</span>
             ${hasTarget ? `<span class="budget-remaining-val ${isOver ? 'minus' : 'plus'}">
               ${isOver ? '⚠️' : '✅'} ${isOver ? '-' : ''}${fmt(Math.abs(remaining))} នៅសល់
             </span>` : ''}
           </div>
+          ${canEditBudgets ? `
+          <div class="budget-dates">
+            <label class="budget-date-label">📅
+              <input type="date" class="budget-date-input budget-start-date"
+                     data-cat="${cat}" value="${startDate}" title="ថ្ងៃចាប់ផ្ដើម">
+            </label>
+            <span class="budget-dates-sep">→</span>
+            <label class="budget-date-label">
+              <input type="date" class="budget-date-input budget-end-date"
+                     data-cat="${cat}" value="${endDate}" title="ថ្ងៃបញ្ចប់">
+            </label>
+          </div>
+          ` : (startDate || endDate ? `
+          <div class="budget-dates budget-dates-readonly">
+            <span>📅 ${startDate || '—'} → ${endDate || '—'}</span>
+          </div>
+          ` : '')}
           ${hasTarget ? `
             <div class="budget-bar-wrap">
               <div class="budget-bar">
@@ -481,7 +665,10 @@ function renderBudgets() {
   });
 
   // ---- Income vs Total Targets Summary ----
-  const totalTarget = Object.values(budgetTargets).reduce((s, v) => s + (v > 0 ? v : 0), 0);
+  const totalTarget = Object.values(budgetTargets).reduce((s, v) => {
+    const t = typeof v === 'object' ? (v.target || 0) : (v || 0);
+    return s + (t > 0 ? t : 0);
+  }, 0);
   const summaryEl = document.getElementById('budget-summary');
   if (summaryEl) {
     if (totalTarget > 0) {
@@ -516,6 +703,12 @@ function renderBudgets() {
 //  REMOVE / CLEAR
 // ============================================================
 window.removeTransaction = function(idx) {
+  const t = transactions[idx];
+  if (!t) return;
+  if (!canDeleteTransaction(t)) {
+    showToast('📵 មិនអាចលុបទិន្នន័យរបស់អ្នកដទៃ', 'warning');
+    return;
+  }
   if (confirm('តើអ្នកប្រាកដថាចង់លុបធាតុនេះ?')) {
     transactions.splice(idx, 1);
     saveAndRender();
@@ -523,14 +716,11 @@ window.removeTransaction = function(idx) {
 };
 
 window.clearAll = function() {
-  const target = filterView === 'all'     ? 'ប្រវត្តិទាំងអស់' :
-                 filterView === 'husband' ? 'ប្រវត្តិប្ដី'     : 'ប្រវត្តិប្រពន្ធ';
-  if (confirm(`លុប${target}?`)) {
-    if (filterView === 'all') {
-      transactions = [];
-    } else {
-      transactions = transactions.filter(t => t.member !== filterView);
-    }
+  const userMember = getCurrentUserMember();
+  const labels = { husband: 'ប្ដី', wife: 'ប្រពន្ធ', child: 'កូន' };
+  const label  = labels[userMember] || '';
+  if (confirm(`លុបប្រវត្តិ${label}?`)) {
+    transactions = transactions.filter(t => t.member !== userMember);
     saveAndRender();
   }
 };
@@ -573,7 +763,7 @@ form.addEventListener('submit', function(e) {
   // Clear date field so next modal open defaults to today
   if (txnDateEl) txnDateEl.value = '';
   selectType('expense');
-  selectMemberInput('husband');
+  selectMemberInput(getCurrentUserMember() || 'husband');
   closeModal();
 });
 
@@ -593,22 +783,46 @@ function saveAndRender() {
 // ============================================================
 // Wire budget target input changes via event delegation (set up once)
 document.getElementById('budget-list').addEventListener('change', function(e) {
-  const input = e.target.closest('.budget-target-input');
-  if (!input) return;
-  const cat = input.dataset.cat;
-  const val = parseFloat(input.value);
-  if (!isNaN(val) && val > 0) {
-    budgetTargets[cat] = val;
-  } else {
-    delete budgetTargets[cat];
+  if (getCurrentUserRole() === 'child') return; // Child cannot edit budgets
+
+  const input = e.target;
+  const cat   = input.dataset.cat;
+  if (!cat) return;
+
+  // Ensure the category entry is in the new object format
+  if (!budgetTargets[cat] || typeof budgetTargets[cat] !== 'object') {
+    budgetTargets[cat] = {
+      target:    typeof budgetTargets[cat] === 'number' ? budgetTargets[cat] : 0,
+      member:    'all',
+      startDate: '',
+      endDate:   '',
+    };
   }
+
+  if (input.classList.contains('budget-target-input')) {
+    const val = parseFloat(input.value);
+    if (!isNaN(val) && val > 0) {
+      budgetTargets[cat].target = val;
+    } else {
+      // Clear the target but preserve member and date range settings
+      budgetTargets[cat].target = 0;
+    }
+  } else if (input.classList.contains('budget-member-select')) {
+    budgetTargets[cat].member = input.value;
+  } else if (input.classList.contains('budget-start-date')) {
+    budgetTargets[cat].startDate = input.value;
+  } else if (input.classList.contains('budget-end-date')) {
+    budgetTargets[cat].endDate = input.value;
+  }
+
   localStorage.setItem('family_budget_targets', JSON.stringify(budgetTargets));
   updateSummary();
   renderBudgets();
   syncToSheetsQuiet();
 });
 
-saveAndRender();
+applyRoleUI(); // Configure role-based UI now that state variables are ready
+saveAndRender(); // Re-render with correct filterView / role settings
 
 // ============================================================
 //  MONTHLY REPORT
@@ -794,7 +1008,7 @@ async function loadFromSheets() {
     const result = await resp.json();
     if (result.status === 'ok') {
       transactions = result.transactions || [];
-      budgetTargets = result.budgetTargets || {};
+      budgetTargets = migrateBudgetTargets(result.budgetTargets || {});
       saveAndRender();
       showToast('ទិន្នន័យត្រូវបានផ្ទុកពី Google Sheets ជោគជ័យ!', 'success');
     } else {
@@ -812,8 +1026,14 @@ window.loadFromSheets = loadFromSheets;
 //  BUDGET TARGET SAVE & EDIT
 // ============================================================
 window.saveBudgetTargets = async function() {
+  if (getCurrentUserRole() === 'child') {
+    showToast('📵 មិនអាចកែប្រែគោលដៅបានទេ', 'warning');
+    return;
+  }
+  // Always persist to localStorage first
+  localStorage.setItem('family_budget_targets', JSON.stringify(budgetTargets));
   if (!sheetsWebAppUrl) {
-    showToast('សូមកំណត់ Google Sheets URL ក្នុង ⚙️ ការកំណត់ជាមុន', 'warning');
+    showToast('✅ គោលដៅចំណាយត្រូវបានរក្សាទុក!', 'success');
     return;
   }
   const btn = document.querySelector('.btn-save-budget');

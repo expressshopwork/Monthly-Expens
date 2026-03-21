@@ -26,6 +26,10 @@
           <span class="login-user-avatar">👩</span>
           <span class="login-user-name">kab.sreyrath</span>
         </button>
+        <button class="login-user-btn" onclick="loginAs('family.child')">
+          <span class="login-user-avatar">👦</span>
+          <span class="login-user-name">family.child</span>
+        </button>
       </div>
     </div>
   </div>
@@ -82,9 +86,13 @@ function doPost(e) {
       // Write budget targets
       let bSheet = ss.getSheetByName('BudgetTargets') || ss.insertSheet('BudgetTargets');
       bSheet.clearContents();
-      bSheet.appendRow(['Category','Target']);
+      bSheet.appendRow(['Category','Target','Member','StartDate','EndDate']);
       Object.entries(data.budgetTargets || {}).forEach(([cat, val]) => {
-        bSheet.appendRow([cat, val]);
+        const target    = typeof val === 'object' ? (val.target    || 0)   : (val || 0);
+        const member    = typeof val === 'object' ? (val.member    || 'all') : 'all';
+        const startDate = typeof val === 'object' ? (val.startDate || '')  : '';
+        const endDate   = typeof val === 'object' ? (val.endDate   || '')  : '';
+        bSheet.appendRow([cat, target, member, startDate, endDate]);
       });
 
       return ContentService.createTextOutput(JSON.stringify({status:'ok'}))
@@ -110,8 +118,10 @@ function doGet(e) {
     }
     const budgetTargets = {};
     if (bSheet && bSheet.getLastRow() > 1) {
-      const bRows = bSheet.getRange(2, 1, bSheet.getLastRow()-1, 2).getValues();
-      bRows.forEach(r => { if (r[0]) budgetTargets[r[0]] = Number(r[1]); });
+      const bRows = bSheet.getRange(2, 1, bSheet.getLastRow()-1, 5).getValues();
+      bRows.forEach(r => {
+        if (r[0]) budgetTargets[r[0]] = { target: Number(r[1]), member: r[2] || 'all', startDate: r[3] || '', endDate: r[4] || '' };
+      });
     }
     return ContentService.createTextOutput(JSON.stringify({status:'ok', transactions, budgetTargets}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -128,6 +138,7 @@ function doGet(e) {
       <button class="tab active" id="tab-all"     onclick="filterMember('all')">👨‍👩‍👧 ទាំងអស់</button>
       <button class="tab"        id="tab-husband"  onclick="filterMember('husband')">👨 ប្ដី</button>
       <button class="tab"        id="tab-wife"     onclick="filterMember('wife')">👩 ប្រពន្ធ</button>
+      <button class="tab"        id="tab-child"    onclick="filterMember('child')">👦 កូន</button>
     </div>
 
     <!-- ===== សមតុល្យ ===== -->
@@ -269,12 +280,13 @@ function doGet(e) {
 
       <!-- Member + Type side by side -->
       <div class="form-inline-rows">
-        <!-- ប្ដី / ប្រពន្ធ -->
+        <!-- ប្ដី / ប្រពន្ធ / កូន -->
         <div class="member-select-row">
           <p class="field-label">👤 សមាជិក</p>
           <div class="type-buttons">
             <button type="button" class="btn-husband active" id="btn-husband" onclick="selectMemberInput('husband')">👨 ប្ដី</button>
             <button type="button" class="btn-wife" id="btn-wife" onclick="selectMemberInput('wife')">👩 ប្រពន្ធ</button>
+            <button type="button" class="btn-child" id="btn-child" onclick="selectMemberInput('child')">👦 កូន</button>
           </div>
         </div>
 
