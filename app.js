@@ -1,4 +1,35 @@
 // ============================================================
+//  TOAST NOTIFICATIONS
+// ============================================================
+function showToast(message, type = 'success', duration = 3000) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+
+  const iconEl = document.createElement('span');
+  iconEl.className = 'toast-icon';
+  iconEl.textContent = icons[type] || '💬';
+
+  const msgEl = document.createElement('span');
+  msgEl.className = 'toast-msg';
+  msgEl.textContent = message;
+
+  toast.appendChild(iconEl);
+  toast.appendChild(msgEl);
+  container.appendChild(toast);
+
+  const remove = () => {
+    toast.classList.add('toast-hide');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  };
+  const timer = setTimeout(remove, duration);
+  toast.addEventListener('click', () => { clearTimeout(timer); remove(); });
+}
+
+// ============================================================
 //  AUTH
 // ============================================================
 const ALLOWED_USERS = ['rim.saray', 'kab.sreyrath'];
@@ -522,6 +553,7 @@ form.addEventListener('submit', function(e) {
 
   saveAndRender();
   syncToSheetsQuiet();
+  showToast('រក្សាទុកបានជោគជ័យ', 'success');
   form.reset();
   // Clear date field so next modal open defaults to today
   if (txnDateEl) txnDateEl.value = '';
@@ -636,7 +668,7 @@ window.closeReport = function() {
 // ============================================================
 async function syncToSheets() {
   if (!sheetsWebAppUrl) {
-    alert('Please configure your Google Sheets Web App URL in the ⚙️ Settings panel first.');
+    showToast('សូមកំណត់ Google Sheets URL ក្នុង ⚙️ ការកំណត់ជាមុន', 'warning');
     return;
   }
   const btn = document.getElementById('btn-sync-sheets');
@@ -654,12 +686,12 @@ async function syncToSheets() {
     });
     const result = await resp.json();
     if (result.status === 'ok') {
-      alert('✅ Synced to Google Sheets successfully!');
+      showToast('បានធ្វើសមកាលកម្មជាមួយ Google Sheets ជោគជ័យ!', 'success');
     } else {
-      alert('❌ Sync error: ' + (result.message || 'Unknown error'));
+      showToast('❌ មានបញ្ហាក្នុងការធ្វើសមកាលកម្ម: ' + (result.message || 'Unknown error'), 'error');
     }
   } catch (err) {
-    alert('❌ Failed to reach the Web App. Check your URL.\n' + err.message);
+    showToast('❌ មិនអាចភ្ជាប់ Web App បាន។ សូមពិនិត្យ URL របស់អ្នក', 'error');
   } finally {
     if (btn) { btn.textContent = '📤 Sync to Sheets'; btn.disabled = false; }
   }
@@ -685,7 +717,7 @@ window.syncToSheetsQuiet = syncToSheetsQuiet;
 
 async function loadFromSheets() {
   if (!sheetsWebAppUrl) {
-    alert('Please configure your Google Sheets Web App URL in the ⚙️ Settings panel first.');
+    showToast('សូមកំណត់ Google Sheets URL ក្នុង ⚙️ ការកំណត់ជាមុន', 'warning');
     return;
   }
   const btn = document.getElementById('btn-load-sheets');
@@ -699,12 +731,12 @@ async function loadFromSheets() {
       transactions = result.transactions || [];
       budgetTargets = result.budgetTargets || {};
       saveAndRender();
-      alert('✅ Data loaded from Google Sheets!');
+      showToast('ទិន្នន័យត្រូវបានផ្ទុកពី Google Sheets ជោគជ័យ!', 'success');
     } else {
-      alert('❌ Load error: ' + (result.message || 'Unknown error'));
+      showToast('❌ មានបញ្ហាក្នុងការផ្ទុក: ' + (result.message || 'Unknown error'), 'error');
     }
   } catch (err) {
-    alert('❌ Failed to reach the Web App. Check your URL.\n' + err.message);
+    showToast('❌ មិនអាចភ្ជាប់ Web App បាន។ សូមពិនិត្យ URL របស់អ្នក', 'error');
   } finally {
     if (btn) { btn.textContent = '📥 Load from Sheets'; btn.disabled = false; }
   }
@@ -726,7 +758,7 @@ window.saveSheetUrl = function() {
   if (input) {
     sheetsWebAppUrl = input.value.trim();
     localStorage.setItem('sheets_web_app_url', sheetsWebAppUrl);
-    alert(sheetsWebAppUrl ? '✅ URL saved!' : '🗑️ URL cleared.');
+    showToast(sheetsWebAppUrl ? '✅ URL បានរក្សាទុក!' : '🗑️ URL ត្រូវបានលុប!', sheetsWebAppUrl ? 'success' : 'info');
   }
 };
 
