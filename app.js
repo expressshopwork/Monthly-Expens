@@ -7,6 +7,7 @@ let selectedType   = 'expense';
 let selectedMember = 'husband';
 let filterView     = 'all'; // 'all' | 'husband' | 'wife'
 let filterMonth    = '';    // '' = all, or 'M/YYYY'
+let sheetsWebAppUrl = localStorage.getItem('sheets_web_app_url') || '';
 
 const EXPENSE_CATEGORIES = [
   'អាហារ + កាហ្វេ', 'ការធ្វើដំណើរ', 'ចំណាយផ្ទះ',
@@ -576,3 +577,84 @@ window.closeReport = function() {
   document.getElementById('report-modal').classList.remove('open');
   document.getElementById('report-overlay').classList.remove('open');
 };
+
+// ============================================================
+//  GOOGLE SHEETS SYNC
+// ============================================================
+async function syncToSheets() {
+  if (!sheetsWebAppUrl) {
+    alert('Please configure your Google Sheets Web App URL in the ⚙️ Settings panel first.');
+    return;
+  }
+  const btn = document.getElementById('btn-sync-sheets');
+  if (btn) { btn.textContent = '⏳ Syncing...'; btn.disabled = true; }
+
+  try {
+    const payload = {
+      action: 'sync',
+      transactions: transactions,
+      budgetTargets: budgetTargets,
+    };
+    const resp = await fetch(sheetsWebAppUrl, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      alert('✅ Synced to Google Sheets successfully!');
+    } else {
+      alert('❌ Sync error: ' + (result.message || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('❌ Failed to reach the Web App. Check your URL.\n' + err.message);
+  } finally {
+    if (btn) { btn.textContent = '📤 Sync to Sheets'; btn.disabled = false; }
+  }
+}
+window.syncToSheets = syncToSheets;
+
+async function loadFromSheets() {
+  if (!sheetsWebAppUrl) {
+    alert('Please configure your Google Sheets Web App URL in the ⚙️ Settings panel first.');
+    return;
+  }
+  const btn = document.getElementById('btn-load-sheets');
+  if (btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
+
+  try {
+    const url = sheetsWebAppUrl + '?action=load';
+    const resp = await fetch(url);
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      transactions = result.transactions || [];
+      budgetTargets = result.budgetTargets || {};
+      saveAndRender();
+      alert('✅ Data loaded from Google Sheets!');
+    } else {
+      alert('❌ Load error: ' + (result.message || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('❌ Failed to reach the Web App. Check your URL.\n' + err.message);
+  } finally {
+    if (btn) { btn.textContent = '📥 Load from Sheets'; btn.disabled = false; }
+  }
+}
+window.loadFromSheets = loadFromSheets;
+
+window.saveSheetUrl = function() {
+  const input = document.getElementById('sheets-url-input');
+  if (input) {
+    sheetsWebAppUrl = input.value.trim();
+    localStorage.setItem('sheets_web_app_url', sheetsWebAppUrl);
+    alert(sheetsWebAppUrl ? '✅ URL saved!' : '🗑️ URL cleared.');
+  }
+};
+
+window.toggleSettings = function() {
+  const panel = document.getElementById('settings-panel');
+  if (panel) panel.classList.toggle('open');
+};
+
+// Populate saved URL into settings input on load
+const _urlInput = document.getElementById('sheets-url-input');
+if (_urlInput && sheetsWebAppUrl) _urlInput.value = sheetsWebAppUrl;

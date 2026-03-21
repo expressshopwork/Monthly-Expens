@@ -717,3 +717,96 @@ form input:focus, form select:focus { border-color: #667eea; }
   padding: 0.8rem 0;
   font-weight: 600;
 }
+
+/* ============================================================
+   GOOGLE SHEETS SYNC
+   ============================================================ */
+.sheets-sync-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-sheets-action {
+  flex: 1;
+  min-width: 140px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #1a73e8, #0d47a1);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: opacity .2s, transform .1s;
+}
+.btn-sheets-action:hover { opacity: 0.88; }
+.btn-sheets-action:active { transform: scale(0.97); }
+.btn-sheets-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-sheets-settings {
+  padding: 9px 13px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background .2s;
+}
+.btn-sheets-settings:hover { background: rgba(255,255,255,0.14); }
+
+.settings-panel {
+  display: none;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.settings-panel.open { display: block; }
+.settings-panel h3 { margin: 0 0 8px; font-size: 1rem; }
+.settings-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.settings-row input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 0.85rem;
+}
+.settings-row button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #27ae60;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.settings-row button:hover { opacity: 0.85; }
+
+.apps-script-pre {
+  background: #0d0d1a;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  color: #a5f3a5;
+  margin-top: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,0.1);
+}
