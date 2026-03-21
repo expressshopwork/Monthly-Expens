@@ -201,6 +201,8 @@ function populateMonthFilter() {
 
 window.applyMonthFilter = function(month) {
   filterMonth = month;
+  updateCompare();
+  updateVsBar();
   renderList();
   renderBudgets();
 };
@@ -286,8 +288,10 @@ function updateSummary() {
 //  COMPARE TABLE  (ប្ដី vs ប្រពន្ធ)
 // ============================================================
 function updateCompare() {
-  const h = transactions.filter(t => t.member === 'husband');
-  const w = transactions.filter(t => t.member === 'wife');
+  const monthKey = filterMonth || getCurrentMonthKey();
+  const monthTx = transactions.filter(t => t.date && getMonthKey(t.date) === monthKey);
+  const h = monthTx.filter(t => t.member === 'husband');
+  const w = monthTx.filter(t => t.member === 'wife');
 
   const hInc = sumBy(h, 'income');
   const hExp = sumBy(h, 'expense');
@@ -313,8 +317,10 @@ function updateCompare() {
 //  VS PROGRESS BAR
 // ============================================================
 function updateVsBar() {
-  const hExp = sumBy(transactions.filter(t => t.member === 'husband'), 'expense');
-  const wExp = sumBy(transactions.filter(t => t.member === 'wife'),    'expense');
+  const monthKey = filterMonth || getCurrentMonthKey();
+  const monthTx = transactions.filter(t => t.date && getMonthKey(t.date) === monthKey);
+  const hExp = sumBy(monthTx.filter(t => t.member === 'husband'), 'expense');
+  const wExp = sumBy(monthTx.filter(t => t.member === 'wife'),    'expense');
   const total = hExp + wExp;
 
   const hPct = total === 0 ? 50 : Math.round((hExp / total) * 100);
@@ -700,7 +706,12 @@ window.resetForNextMonth = function() {
 
   budgetTargets = {};
   localStorage.setItem('family_budget_targets', JSON.stringify(budgetTargets));
-  filterMonth = '';
+
+  // Advance the filter to the next calendar month so comparison and budget show zero
+  const [m, y] = reportMonthKey.split('/').map(Number);
+  const nextDate = new Date(y, m, 1); // m is 1-indexed month; Date uses 0-indexed months, so passing m gives next month
+  filterMonth = (nextDate.getMonth() + 1) + '/' + nextDate.getFullYear();
+
   saveAndRender();
   closeReport();
   showToast('🔄 ថវិការត្រូវបានកំណត់ឡើងវិញ! បន្ថែមថវិកាសម្រាប់ខែថ្មី។', 'info');
