@@ -421,7 +421,7 @@ function renderBudgets() {
   const monthLabel = getMonthLabel(monthKey);
 
   // Update heading to reflect the displayed month
-  const budgetHeading = document.querySelector('.budget-card h2');
+  const budgetHeading = document.querySelector('.budget-card-header h2');
   if (budgetHeading) {
     budgetHeading.textContent = `🎯 គោលដៅចំណាយ (${monthLabel})`;
   }
@@ -448,7 +448,10 @@ function renderBudgets() {
       <div class="budget-row">
         <span class="budget-icon">${icon}</span>
         <div class="budget-info">
-          <span class="budget-cat">${cat}</span>
+          <div class="budget-cat-row">
+            <span class="budget-cat">${cat}</span>
+            <button class="budget-edit-btn" onclick="editBudgetTarget(this)" title="Edit target">✏️</button>
+          </div>
           <div class="budget-nums">
             <label class="budget-target-label">🎯
               <input type="number" class="budget-target-input"
@@ -602,6 +605,7 @@ document.getElementById('budget-list').addEventListener('change', function(e) {
   localStorage.setItem('family_budget_targets', JSON.stringify(budgetTargets));
   updateSummary();
   renderBudgets();
+  syncToSheetsQuiet();
 });
 
 saveAndRender();
@@ -803,6 +807,47 @@ async function loadFromSheets() {
   }
 }
 window.loadFromSheets = loadFromSheets;
+
+// ============================================================
+//  BUDGET TARGET SAVE & EDIT
+// ============================================================
+window.saveBudgetTargets = async function() {
+  if (!sheetsWebAppUrl) {
+    showToast('សូមកំណត់ Google Sheets URL ក្នុង ⚙️ ការកំណត់ជាមុន', 'warning');
+    return;
+  }
+  const btn = document.querySelector('.btn-save-budget');
+  if (btn) { btn.textContent = '⏳...'; btn.disabled = true; }
+  try {
+    const payload = {
+      action: 'sync',
+      transactions: transactions,
+      budgetTargets: budgetTargets,
+    };
+    const resp = await fetch(sheetsWebAppUrl, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      showToast('✅ គោលដៅចំណាយត្រូវបានរក្សាទុកក្នុង Google Sheets!', 'success');
+    } else {
+      showToast('❌ មានបញ្ហា: ' + (result.message || 'Unknown error'), 'error');
+    }
+  } catch (err) {
+    showToast('❌ មិនអាចភ្ជាប់ Web App បាន។ សូមពិនិត្យ URL របស់អ្នក', 'error');
+  } finally {
+    if (btn) { btn.textContent = '💾 រក្សាទុក'; btn.disabled = false; }
+  }
+};
+
+window.editBudgetTarget = function(btn) {
+  const input = btn.closest('.budget-item')?.querySelector('.budget-target-input');
+  if (input) {
+    input.focus();
+    input.select();
+  }
+};
 
 window.fabRefresh = async function() {
   const btn = document.getElementById('btn-fab-refresh');
