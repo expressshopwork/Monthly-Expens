@@ -13,6 +13,89 @@
   <div class="container">
     <h1>💰 គ្រួសាររបស់ខ្ញុំ</h1>
 
+    <!-- ===== Google Sheets Sync Bar ===== -->
+    <div class="sheets-sync-bar">
+      <button class="btn-sheets-action" id="btn-sync-sheets" onclick="syncToSheets()">📤 Sync to Sheets</button>
+      <button class="btn-sheets-action" id="btn-load-sheets" onclick="loadFromSheets()">📥 Load from Sheets</button>
+      <button class="btn-sheets-settings" onclick="toggleSettings()">⚙️</button>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settings-panel">
+      <h3>⚙️ Google Sheets Settings</h3>
+      <p>Paste your <strong>Google Apps Script Web App URL</strong> below.</p>
+      <p style="font-size:0.82em; color:#aaa;">
+        👉 <a href="https://script.google.com" target="_blank" style="color:#4fc3f7;">script.google.com</a> → New Project → paste the Apps Script code → Deploy → Web App → Copy URL
+      </p>
+      <p style="font-size:0.82em; color:#aaa;">
+        Spreadsheet ID: <code style="background:#1e1e2e;padding:2px 6px;border-radius:4px;">1gMal3LlP5Wsh9UqXZjtWg-5hF5bRdjuezrXUBsL_K_A</code>
+      </p>
+      <div class="settings-row">
+        <input type="text" id="sheets-url-input" placeholder="https://script.google.com/macros/s/..." />
+        <button onclick="saveSheetUrl()">💾 Save</button>
+      </div>
+      <details style="margin-top:12px;">
+        <summary style="cursor:pointer; color:#4fc3f7; font-size:0.88em;">📋 Show Apps Script Code to Deploy</summary>
+        <pre class="apps-script-pre"><code>const SHEET_ID = '1gMal3LlP5Wsh9UqXZjtWg-5hF5bRdjuezrXUBsL_K_A';
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+
+    if (data.action === 'sync') {
+      // Write transactions
+      let sheet = ss.getSheetByName('Transactions') || ss.insertSheet('Transactions');
+      sheet.clearContents();
+      sheet.appendRow(['Date','Description','Amount','Type','Member','Category']);
+      (data.transactions || []).forEach(t => {
+        sheet.appendRow([t.date, t.desc, t.amount, t.type, t.member, t.category]);
+      });
+
+      // Write budget targets
+      let bSheet = ss.getSheetByName('BudgetTargets') || ss.insertSheet('BudgetTargets');
+      bSheet.clearContents();
+      bSheet.appendRow(['Category','Target']);
+      Object.entries(data.budgetTargets || {}).forEach(([cat, val]) => {
+        bSheet.appendRow([cat, val]);
+      });
+
+      return ContentService.createTextOutput(JSON.stringify({status:'ok'}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({status:'error', message: err.message}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName('Transactions');
+    const bSheet = ss.getSheetByName('BudgetTargets');
+    const transactions = [];
+    if (sheet && sheet.getLastRow() > 1) {
+      const rows = sheet.getRange(2, 1, sheet.getLastRow()-1, 6).getValues();
+      rows.forEach(r => {
+        transactions.push({ date:r[0], desc:r[1], amount:Number(r[2]), type:r[3], member:r[4], category:r[5] });
+      });
+    }
+    const budgetTargets = {};
+    if (bSheet && bSheet.getLastRow() > 1) {
+      const bRows = bSheet.getRange(2, 1, bSheet.getLastRow()-1, 2).getValues();
+      bRows.forEach(r => { if (r[0]) budgetTargets[r[0]] = Number(r[1]); });
+    }
+    return ContentService.createTextOutput(JSON.stringify({status:'ok', transactions, budgetTargets}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({status:'error', message: err.message}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</code></pre>
+      </details>
+    </div>
+
     <!-- ===== សមាជិកគ្រួសារ ===== -->
     <div class="member-tabs">
       <button class="tab active" id="tab-all"     onclick="filterMember('all')">👨‍👩‍👧 ទាំងអស់</button>
